@@ -9,9 +9,25 @@ on:
     types: [published]
 
 jobs:
+  delete-assets:
+    name: Delete Existing Release Assets
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+    - name: Delete Existing Release Assets
+      run: |
+        release_id=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/oneclickvirt/backtrace/releases/tags/output" | jq -r '.id')
+        echo "Deleting existing release assets..."
+        assets=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/oneclickvirt/backtrace/releases/$release_id/assets" | jq -r '.[] | .id')
+        for asset in $assets; do
+          echo "Deleting asset with ID: $asset"
+          curl -X DELETE -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/oneclickvirt/backtrace/releases/assets/$asset"
+        done
+
   build:
     name: Build and Test
     runs-on: ubuntu-latest
+    needs: delete-assets
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -45,28 +61,11 @@ jobs:
         cd cmd
         go build -o ../bin/backtrace-${{ matrix.goos }}-${{ matrix.goarch }} -v .
 
-    - name: Check, Delete Existing Assets and Upload New Assets
+    - name: Upload New Assets
       run: |
         release_id=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/oneclickvirt/backtrace/releases/tags/output" | jq -r '.id')
-        echo "Checking, deleting existing assets, and uploading new assets..."
+        echo "Uploading new assets to release..."
         for file in ./bin/*; do
-          echo "Processing file: $file"
-          existing_asset_id=$(curl -s -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/oneclickvirt/backtrace/releases/$release_id/assets" \
-            | jq -r --arg name "$(basename "$file")" '.[] | select(.name == $name) | .id')
-          if [ -n "$existing_asset_id" ]; then
-            echo "Asset already exists in release, deleting existing asset..."
-            delete_response=$(curl -s -X DELETE -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/oneclickvirt/backtrace/releases/assets/$existing_asset_id")
-            echo "$delete_response"
-            if [ $? -eq 0 ] && ! echo "$delete_response" | grep -q "error"; then
-              echo "Existing asset deleted successfully."
-            else
-              echo "Failed to delete existing asset. Skipping file upload..."
-              continue
-            fi
-          else
-            echo "No existing asset found."
-          fi
           echo "Uploading $file to release..."
           curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Content-Type: application/zip" \
