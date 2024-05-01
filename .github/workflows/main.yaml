@@ -23,6 +23,7 @@ jobs:
       
     - name: Build and Test on Default Platform
       run: |
+        cd ${{ github.workspace }}
         go build -v ./...
         go test -v ./...
 
@@ -97,6 +98,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      
       - name: Release Go Binary
         run: |
+          cd ${{ github.workspace }}
           go build -o backtrace-${{ matrix.goos }}-${{ matrix.goarch }} -v ./...
