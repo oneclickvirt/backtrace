@@ -1,30 +1,45 @@
-name: Release
+name: Build and Release
 
 on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   release:
     types: [published]
 
 jobs:
-  releases-matrix:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 'stable'
+      
+    - name: Build and Test on Default Platform
+      run: |
+        go build -v ./...
+        go test -v ./...
+
+  release-binary:
     name: Release Go Binary
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
-        # Include amd64 on all platforms.
-        goos: [windows, freebsd, openbsd, linux, dragonfly, darwin]
+        goos: [windows, freebsd, openbsd, linux, darwin]
         goarch: [amd64, 386]
         exclude:
-          # Exclude i386 on darwin and dragonfly.
-          - goarch: 386
-            goos: dragonfly
           - goarch: 386
             goos: darwin
         include:
-          # BEIGIN MacOS ARM64
           - goos: darwin
             goarch: arm64
-          # END macOS ARM64
-          # BEGIN Linux ARM 5 6 7
           - goos: linux
             goarch: arm
             goarm: 7
@@ -34,25 +49,17 @@ jobs:
           - goos: linux
             goarch: arm
             goarm: 5
-          # END Linux ARM 5 6 7
-          # BEGIN Android ARM 8
           - goos: android
             goarch: arm64
-          # END Android ARM 8
-          # Windows ARM
           - goos: windows
             goarch: arm64
           - goos: windows
             goarch: arm
             goarm: 7
-          # BEGIN Other architectures
-          # BEGIN riscv64 & ARM64
           - goos: linux
             goarch: arm64
           - goos: linux
             goarch: riscv64
-          # END riscv64 & ARM64
-          # BEGIN MIPS
           - goos: linux
             goarch: mips64
           - goos: linux
@@ -67,26 +74,15 @@ jobs:
           - goos: linux
             goarch: mips
             gomips: softfloat
-          # END MIPS
-          # BEGIN PPC
           - goos: linux
             goarch: ppc64
           - goos: linux
             goarch: ppc64le
-          # END PPC
-          # BEGIN FreeBSD ARM
           - goos: freebsd
             goarch: arm64
           - goos: freebsd
             goarch: arm
             goarm: 7
-          # END FreeBSD ARM
-          # BEGIN S390X
-          - goos: linux
-            goarch: s390x
-          # END S390X
-          # END Other architectures
-          # BEGIN OPENBSD ARM
           - goos: openbsd
             goarch: arm64
           - goos: openbsd
@@ -99,11 +95,8 @@ jobs:
       GOMIPS: ${{ matrix.gomips }}
       CGO_ENABLED: 0
     steps:
-      - uses: actions/checkout@v3
-      - uses: wangyoucao577/go-release-action@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          goos: ${{ matrix.goos }}
-          goarch: ${{ matrix.goarch }}
-          asset_name: backtrace-${{ matrix.goos }}-${{ matrix.goarch }}
-          ldflags: -s -w
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Release Go Binary
+        run: |
+          go build -o backtrace-${{ matrix.goos }}-${{ matrix.goarch }} -v ./...
