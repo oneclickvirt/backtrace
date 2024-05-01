@@ -45,26 +45,35 @@ jobs:
         cd cmd
         go build -o ../bin/backtrace-${{ matrix.goos }}-${{ matrix.goarch }} -v .
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        body: |
-          Description of the release
-        draft: false
-        prerelease: false
-
-    - name: Upload Release Asset
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./bin/backtrace-${{ matrix.goos }}-${{ matrix.goarch }}
-        asset_name: backtrace-${{ matrix.goos }}-${{ matrix.goarch }}
-        asset_content_type: application/octet-stream
-        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Check, Delete Existing Assets and Upload New Assets
+      run: |
+        release_id=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/oneclickvirt/backtrace/releases/latest" | jq -r '.id')
+        echo "Checking, deleting existing assets, and uploading new assets..."
+        for file in ./bin/*; do
+          echo "Processing file: $file"
+          existing_asset_id=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/oneclickvirt/backtrace/releases/$release_id/assets" \
+            | jq -r --arg name "$(basename "$file")" '.[] | select(.name == $name) | .id')
+          if [ -n "$existing_asset_id" ]; then
+            echo "Asset already exists in release, deleting existing asset..."
+            delete_response=$(curl -s -X DELETE -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/oneclickvirt/backtrace/releases/assets/$existing_asset_id")
+            echo "$delete_response"
+            if [ $? -eq 0 ] && ! echo "$delete_response" | grep -q "error"; then
+              echo "Existing asset deleted successfully."
+            else
+              echo "Failed to delete existing asset. Skipping file upload..."
+              continue
+            fi
+          else
+            echo "No existing asset found."
+          fi
+          echo "Uploading $file to release..."
+          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/zip" \
+            --data-binary @"$file" \
+            "https://uploads.github.com/repos/oneclickvirt/incus_images/releases/$release_id/assets?name=$(basename "$file")"
+          rm -rf $file
+        done
 
     strategy:
       matrix:
