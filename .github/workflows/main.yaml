@@ -47,7 +47,7 @@ jobs:
 
     - name: Check, Delete Existing Assets and Upload New Assets
       run: |
-        release_id=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/oneclickvirt/backtrace/releases/latest" | jq -r '.id')
+        release_id=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/oneclickvirt/backtrace/releases/output" | jq -r '.id')
         echo "Checking, deleting existing assets, and uploading new assets..."
         for file in ./bin/*; do
           echo "Processing file: $file"
