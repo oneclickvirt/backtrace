@@ -131,6 +131,6 @@ jobs:
             curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               -H "Content-Type: application/zip" \
               --data-binary @"$file" \
-              "https://uploads.github.com/repos/oneclickvirt/incus_images/releases/$release_id/assets?name=$(basename "$file")"
+              "https://uploads.github.com/repos/oneclickvirt/backtrace/releases/$release_id/assets?name=$(basename "$file")"
             rm -rf $file
           done
