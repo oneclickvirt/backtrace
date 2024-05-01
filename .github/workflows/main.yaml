@@ -55,7 +55,6 @@ jobs:
           Description of the release
         draft: false
         prerelease: false
-        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Release Asset
       id: upload-release-asset
@@ -65,6 +64,7 @@ jobs:
         asset_path: ./bin/backtrace-${{ matrix.goos }}-${{ matrix.goarch }}
         asset_name: backtrace-${{ matrix.goos }}-${{ matrix.goarch }}
         asset_content_type: application/octet-stream
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     strategy:
       matrix:
