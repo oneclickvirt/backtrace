@@ -2,10 +2,9 @@ package backtrace
 
 import (
 	"fmt"
+	. "github.com/oneclickvirt/backtrace/defaultset"
 	"net"
 	"strings"
-
-	. "github.com/oneclickvirt/backtrace/defaultset"
 )
 
 type Result struct {
@@ -100,15 +99,25 @@ func trace(ch chan Result, i int, cmin2 []string) {
 			case "AS4809": // 被 AS4809a 和 AS4809b 替代了
 				continue
 			case "AS9929":
-				tempText += DarkGreen(asnDescription) + " "
+				if !strings.Contains(tempText, asnDescription) {
+					tempText += DarkGreen(asnDescription) + " "
+				}
 			case "AS4809a":
-				tempText += DarkGreen(asnDescription) + " "
+				if !strings.Contains(tempText, asnDescription) {
+					tempText += DarkGreen(asnDescription) + " "
+				}
 			case "AS4809b":
-				tempText += Green(asnDescription) + " "
+				if !strings.Contains(tempText, asnDescription) {
+					tempText += Green(asnDescription) + " "
+				}
 			case "AS58807":
-				tempText += Green(asnDescription) + " "
+				if !strings.Contains(tempText, asnDescription) {
+					tempText += Green(asnDescription) + " "
+				}
 			default:
-				tempText += White(asnDescription) + " "
+				if !strings.Contains(tempText, asnDescription) {
+					tempText += White(asnDescription) + " "
+				}
 			}
 		}
 		ch <- Result{i, tempText}
