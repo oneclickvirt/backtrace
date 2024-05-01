@@ -62,7 +62,7 @@ jobs:
         for file in ./bin/*; do
           echo "Uploading $file to release..."
           curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Content-Type: application/zip" \
+            -H "Content-Type: application/octet-stream" \
             --data-binary @"$file" \
             "https://uploads.github.com/repos/oneclickvirt/backtrace/releases/$release_id/assets?name=$(basename "$file")"
           rm -rf $file

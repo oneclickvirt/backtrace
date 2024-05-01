@@ -6,5 +6,6 @@ if [ "$arch" = "x86_64" ]; then
 else
   wget -q -O backtrace  https://github.com/oneclickvirt/backtrace/releases/output/backtrace-linux-arm64
 fi
+chmod 777 backtrace
 mv backtrace /usr/bin/
 backtrace
