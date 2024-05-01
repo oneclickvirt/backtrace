@@ -97,6 +97,8 @@ func trace(ch chan Result, i int, cmin2 []string) {
 			switch asn {
 			case "":
 				continue
+			case "AS4809": // 被 AS4809a 和 AS4809b 替代了
+				continue
 			case "AS9929":
 				tempText += DarkGreen(asnDescription) + " "
 			case "AS4809a":
