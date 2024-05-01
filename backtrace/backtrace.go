@@ -55,14 +55,16 @@ func BackTrace() {
 	rsp, err := http.Get("http://ipinfo.io")
 	if err != nil {
 		log.Fatalln("Get ip info err", err)
+	} else {
+		info := IpInfo{}
+		err = json.NewDecoder(rsp.Body).Decode(&info)
+		if err != nil {
+			log.Fatalln("json decode err", err)
+		} else {
+			fmt.Println(Green("国家: ") + White(info.Country) + Green(" 城市: ") + White(info.City) +
+			Green(" 服务商: ") + Blue(info.Org))
+		}
 	}
-	info := IpInfo{}
-	err = json.NewDecoder(rsp.Body).Decode(&info)
-	if err != nil {
-		log.Fatalln("json decode err", err)
-	}
-	fmt.Println(Green("国家: ") + White(info.Country) + Green(" 城市: ") + White(info.City) +
-		Green(" 服务商: ") + Blue(info.Org))
 	for i := range ips {
 		go trace(c, i, cmin2)
 	}
