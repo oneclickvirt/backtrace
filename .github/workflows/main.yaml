@@ -26,6 +26,7 @@ jobs:
       run: |
         go build -v ./...
         go test -v ./...
+    
     - name: Delete Existing Release Assets
       run: |
         release_id=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/oneclickvirt/backtrace/releases/tags/output" | jq -r '.id')
