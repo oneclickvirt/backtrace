@@ -36,6 +36,7 @@ jobs:
           echo "Deleting asset with ID: $asset"
           curl -X DELETE -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/oneclickvirt/backtrace/releases/assets/$asset"
         done
+        sleep 60
 
   release-binary:
     name: Release Go Binary
