@@ -91,7 +91,7 @@ func trace(ch chan Result, i int, cmin2 []string) {
 			// 仅包含 AS4809 属于 CN2GIA
 			asns = append(asns, "AS4809a")
 		}
-		tempText += fmt.Sprintf("%v %-15s ", names[i], ips[i])
+		tempText += fmt.Sprintf("%-15s ", ips[i])
 		for _, asn := range asns {
 			asnDescription := m[asn]
 			switch asn {
