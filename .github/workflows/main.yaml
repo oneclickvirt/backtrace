@@ -53,7 +53,7 @@ jobs:
       run: |
         mkdir -p bin
         cd cmd
-        go build -o ../bin/backtrace-${{ matrix.goos }}-${{ matrix.goarch }} -v .
+        CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../bin/backtrace-${{ matrix.goos }}-${{ matrix.goarch }} -v -ldflags="-extldflags=-static" .
 
     - name: Upload New Assets
       run: |
