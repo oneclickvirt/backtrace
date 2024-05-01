@@ -18,6 +18,10 @@
 
 ## 使用
 
+更新时间：2024.05.01
+
 ```shell
 curl https://raw.githubusercontent.com/oneclickvirt/backtrace/main/backtrace_install.sh -sSf | sh
 ```
+
+更多架构请查看 https://github.com/oneclickvirt/backtrace/releases/tag/output
