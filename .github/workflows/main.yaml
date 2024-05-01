@@ -87,8 +87,6 @@ jobs:
           - goos: linux
             goarch: arm
             goarm: 5
-          - goos: android
-            goarch: arm64
           - goos: windows
             goarch: arm64
           - goos: windows
