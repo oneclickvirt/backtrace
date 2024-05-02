@@ -55,7 +55,7 @@ jobs:
       run: |
         mkdir -p bin
         cd cmd
-        CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../bin/backtrace-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goarm }} -v -ldflags="-extldflags=-static" .
+        CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../bin/backtrace-${{ matrix.goos }}-${{ matrix.goarch }} -v -ldflags="-extldflags=-static" .
 
     - name: Upload New Assets
       run: |
@@ -74,11 +74,14 @@ jobs:
       matrix:
         goos: [windows, freebsd, openbsd, linux, darwin]
         goarch: [amd64, 386]
-        goarm: [ "", "-arm7", "-arm6", "-arm5" ]
         exclude:
           - goarch: 386
             goos: darwin
         include:
+          - goos: windows
+            goarch: 386
+          - goos: windows
+            goarch: amd64
           - goos: windows
             goarch: arm64
           - goos: windows
@@ -89,12 +92,6 @@ jobs:
           - goos: linux
             goarch: arm
             goarm: 7
-          - goos: linux
-            goarch: arm
-            goarm: 6
-          - goos: linux
-            goarch: arm
-            goarm: 5
           - goos: linux
             goarch: arm64
           - goos: linux
@@ -107,12 +104,6 @@ jobs:
             goarch: mipsle
           - goos: linux
             goarch: mips
-          - goos: linux
-            goarch: mipsle
-            gomips: softfloat
-          - goos: linux
-            goarch: mips
-            gomips: softfloat
           - goos: linux
             goarch: ppc64
           - goos: linux
@@ -127,3 +118,15 @@ jobs:
           - goos: openbsd
             goarch: arm
             goarm: 7
+          # - goos: linux
+          #   goarch: mipsle
+          #   gomips: softfloat
+          # - goos: linux
+          #   goarch: mips
+          #   gomips: softfloat
+          # - goos: linux
+          #   goarch: arm
+          #   goarm: 6
+          # - goos: linux
+          #   goarch: arm
+          #   goarm: 5
