@@ -18,7 +18,7 @@
 
 ## 使用
 
-更新时间：2024.05.01
+更新时间：2024.05.02
 
 ```shell
 curl https://raw.githubusercontent.com/oneclickvirt/backtrace/main/backtrace_install.sh -sSf | sh

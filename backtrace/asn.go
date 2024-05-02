@@ -120,9 +120,12 @@ func trace(ch chan Result, i int, cmin2 []string) {
 				}
 			}
 		}
+		if tempText == (fmt.Sprintf("%v ", names[i]) + fmt.Sprintf("%-15s ", ips[i])) {
+			tempText += fmt.Sprintf("%v", Red("检测不到已知线路的ASN"))
+		}
 		ch <- Result{i, tempText}
 	} else {
-		s := fmt.Sprintf("%v %-15s %v", names[i], ips[i], Red("检测不到ASN"))
+		s := fmt.Sprintf("%v %-15s %v", names[i], ips[i], Red("检测不到回程路由节点的IP地址"))
 		ch <- Result{i, s}
 	}
 }
