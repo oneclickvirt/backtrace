@@ -28,5 +28,7 @@ curl https://raw.githubusercontent.com/oneclickvirt/backtrace/main/backtrace_ins
 
 ## 概览图
 
+![图片](https://github.com/oneclickvirt/backtrace/assets/103393591/4688f99f-0f02-486f-8ffc-78d30f2c2f95)
+
 ![图片](https://github.com/oneclickvirt/backtrace/assets/103393591/2812a47d-4e6b-4091-9bb9-596af6c3c8bc)
 
