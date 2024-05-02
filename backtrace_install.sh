@@ -82,7 +82,7 @@ case $os in
 esac
 
 chmod 777 backtrace
-if [ !-f /usr/bin/backtrace ]; then
+if [ ! -f /usr/bin/backtrace ]; then
   mv backtrace /usr/bin/
   backtrace
 else
