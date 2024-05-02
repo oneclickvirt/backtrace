@@ -25,3 +25,8 @@ curl https://raw.githubusercontent.com/oneclickvirt/backtrace/main/backtrace_ins
 ```
 
 更多架构请查看 https://github.com/oneclickvirt/backtrace/releases/tag/output
+
+## 概览图
+
+![图片](https://github.com/oneclickvirt/backtrace/assets/103393591/2812a47d-4e6b-4091-9bb9-596af6c3c8bc)
+
