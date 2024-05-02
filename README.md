@@ -6,6 +6,8 @@
 
 基于 https://github.com/zhanghanyun/backtrace 的重构和优化，与原版存在很大不同
 
+路由的线路判断最终还是得人工判断的才准确，本项目测试结果仅供参考
+
 ## 功能
 
 - [x] 检测回程显示IPV4地址时的线路，不显示IP地址时显示ASN检测不到，原版[backtrace](https://github.com/zhanghanyun/backtrace)也支持
