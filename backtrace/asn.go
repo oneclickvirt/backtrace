@@ -83,12 +83,13 @@ func trace(ch chan Result, i int, cmin2 []string) {
 				hasAS4809 = true
 			}
 		}
+		// 判断是否包含 AS4134 和 AS4809
 		if hasAS4134 && hasAS4809 {
 			// 同时包含 AS4134 和 AS4809 属于 CN2GT
-			asns = append(asns, "AS4809b")
+			asns = append([]string{"AS4809b"}, asns...)
 		} else if hasAS4809 {
 			// 仅包含 AS4809 属于 CN2GIA
-			asns = append(asns, "AS4809a")
+			asns = append([]string{"AS4809a"}, asns...)
 		}
 		tempText += fmt.Sprintf("%-15s ", ips[i])
 		for _, asn := range asns {

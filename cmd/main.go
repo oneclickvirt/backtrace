@@ -13,6 +13,6 @@ func main() {
 	}()
 	fmt.Println(Green("项目地址:"), Yellow("https://github.com/oneclickvirt/backtrace"))
 	backtrace.BackTrace()
-	fmt.Println(Purple("同一目标地址显示多个线路时可能追踪IP地址已越过汇聚层，此时除去第一个线路信息，后续信息可能无效"))
-	fmt.Println(Purple("准确线路请查看详细的路由自行判断"))
+	fmt.Println(Yellow("准确线路自行查看详细路由，本测试结果仅作参考"))
+	fmt.Println(Yellow("同一目标地址多个线路时，可能检测已越过汇聚层，除了第一个线路外，后续信息可能无效"))
 }
