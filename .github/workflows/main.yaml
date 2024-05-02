@@ -52,10 +52,10 @@ jobs:
         go-version: 'stable'
 
     - name: Build and Release
-  run: |
-    mkdir -p bin
-    cd cmd
-    CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../bin/backtrace-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goarm }} -v -ldflags="-extldflags=-static" .
+      run: |
+        mkdir -p bin
+        cd cmd
+        CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../bin/backtrace-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goarm }} -v -ldflags="-extldflags=-static" .
 
     - name: Upload New Assets
       run: |
