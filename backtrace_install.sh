@@ -9,7 +9,7 @@ arch=$(uname -m)
 case $os in
   Linux)
     case $arch in
-      x86_64)
+      "x86_64" | "x86" | "amd64" | "x64")
         wget -O backtrace https://github.com/oneclickvirt/backtrace/releases/download/output/backtrace-linux-amd64
         ;;
       "i386" | "i686")
@@ -26,7 +26,7 @@ case $os in
     ;;
   Darwin)
     case $arch in
-      x86_64)
+      "x86_64" | "x86" | "amd64" | "x64")
         wget -O backtrace https://github.com/oneclickvirt/backtrace/releases/download/output/backtrace-darwin-amd64
         ;;
       "i386" | "i686")
