@@ -1,6 +1,6 @@
 #!/bin/bash
 #From https://github.com/oneclickvirt/backtrace
-#2024.05.01
+#2024.05.02
 
 os=$(uname -s)
 arch=$(uname -m)
@@ -11,7 +11,10 @@ case $os in
       x86_64)
         wget -O backtrace https://github.com/oneclickvirt/backtrace/releases/download/output/backtrace-linux-amd64
         ;;
-      arm*)
+      i386)
+        wget -O backtrace https://github.com/oneclickvirt/backtrace/releases/download/output/backtrace-linux-386
+        ;;
+      arm64)
         wget -O backtrace https://github.com/oneclickvirt/backtrace/releases/download/output/backtrace-linux-arm64
         ;;
       *)
@@ -24,6 +27,9 @@ case $os in
     case $arch in
       x86_64)
         wget -O backtrace https://github.com/oneclickvirt/backtrace/releases/download/output/backtrace-darwin-amd64
+        ;;
+      i386)
+        wget -O backtrace https://github.com/oneclickvirt/backtrace/releases/download/output/backtrace-darwin-386
         ;;
       arm64)
         wget -O backtrace https://github.com/oneclickvirt/backtrace/releases/download/output/backtrace-darwin-arm64
@@ -42,7 +48,7 @@ case $os in
       i386)
         wget -O backtrace https://github.com/oneclickvirt/backtrace/releases/download/output/backtrace-freebsd-386
         ;;
-      arm*)
+      arm64)
         wget -O backtrace https://github.com/oneclickvirt/backtrace/releases/download/output/backtrace-freebsd-arm64
         ;;
       *)
@@ -59,7 +65,7 @@ case $os in
       i386)
         wget -O backtrace https://github.com/oneclickvirt/backtrace/releases/download/output/backtrace-openbsd-386
         ;;
-      arm*)
+      arm64)
         wget -O backtrace https://github.com/oneclickvirt/backtrace/releases/download/output/backtrace-openbsd-arm64
         ;;
       *)
