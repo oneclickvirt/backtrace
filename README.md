@@ -18,6 +18,10 @@
 - [x] 修复原版[backtrace](https://github.com/zhanghanyun/backtrace)对IPV4地址信息获取时json解析失败依然打印信息的问题
 - [x] 增加对全平台的编译支持，原版[backtrace](https://github.com/zhanghanyun/backtrace)仅支持linux平台的amd64和arm64架构
 
+## TODO
+
+- [ ] 自动检测汇聚层，裁剪结果不输出汇聚层后的线路
+
 ## 使用
 
 更新时间：2024.05.02
