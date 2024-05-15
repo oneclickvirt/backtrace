@@ -30,7 +30,7 @@
 curl https://raw.githubusercontent.com/oneclickvirt/backtrace/main/backtrace_install.sh -sSf | sh
 ```
 
-更多架构请查看 https://github.com/oneclickvirt/backtrace/releases/tag/output
+无环境依赖，理论上适配所有系统和主流架构，更多架构请查看 https://github.com/oneclickvirt/backtrace/releases/tag/output
 
 ## 概览图
 
