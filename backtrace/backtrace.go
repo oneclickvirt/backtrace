@@ -3,7 +3,6 @@ package backtrace
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -55,15 +54,15 @@ func BackTrace() {
 	}
 	rsp, err := http.Get("http://ipinfo.io")
 	if err != nil {
-		log.Fatalln("Get ip info err", err)
+		fmt.Errorf("Get ip info err %v \n", err.Error())
 	} else {
 		info := IpInfo{}
 		err = json.NewDecoder(rsp.Body).Decode(&info)
 		if err != nil {
-			log.Fatalln("json decode err", err)
+			fmt.Errorf("json decode err %v \n", err.Error())
 		} else {
 			fmt.Println(Green("国家: ") + White(info.Country) + Green(" 城市: ") + White(info.City) +
-			Green(" 服务商: ") + Blue(info.Org))
+				Green(" 服务商: ") + Blue(info.Org))
 		}
 	}
 	for i := range ips {
