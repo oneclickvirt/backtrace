@@ -2,9 +2,10 @@ package backtrace
 
 import (
 	"fmt"
-	. "github.com/oneclickvirt/backtrace/defaultset"
 	"net"
 	"strings"
+
+	. "github.com/oneclickvirt/backtrace/defaultset"
 )
 
 type Result struct {
@@ -14,7 +15,7 @@ type Result struct {
 
 var (
 	ips = []string{
-		// "219.141.136.12", "202.106.50.1", 
+		// "219.141.136.12", "202.106.50.1",
 		"219.141.140.10", "202.106.195.68", "221.179.155.161",
 		"202.96.209.133", "210.22.97.1", "211.136.112.200",
 		"58.60.188.222", "210.21.196.6", "120.196.165.24",
@@ -53,7 +54,7 @@ func removeDuplicates(elements []string) []string {
 	return result // 返回去重后的结果切片
 }
 
-func trace(ch chan Result, i int, cmin2 []string) {
+func trace(ch chan Result, i int) {
 	hops, err := Trace(net.ParseIP(ips[i]))
 	if err != nil {
 		s := fmt.Sprintf("%v %-15s %v", names[i], ips[i], err)
@@ -63,7 +64,7 @@ func trace(ch chan Result, i int, cmin2 []string) {
 	var asns []string
 	for _, h := range hops {
 		for _, n := range h.Nodes {
-			asn := ipAsn(n.IP.String(), cmin2)
+			asn := ipAsn(n.IP.String())
 			if asn != "" {
 				asns = append(asns, asn)
 			}
@@ -132,7 +133,7 @@ func trace(ch chan Result, i int, cmin2 []string) {
 	}
 }
 
-func ipAsn(ip string, cmin2 []string) string {
+func ipAsn(ip string) string {
 	switch {
 	case strings.HasPrefix(ip, "59.43"):
 		return "AS4809"
@@ -142,16 +143,9 @@ func ipAsn(ip string, cmin2 []string) string {
 		return "AS9929"
 	case strings.HasPrefix(ip, "219.158"):
 		return "AS4837"
-	case strings.HasPrefix(ip, "223.118") || strings.HasPrefix(ip, "223.119") ||
-		strings.HasPrefix(ip, "223.120"):
-		for _, prefix := range cmin2 {
-			if strings.HasPrefix(ip, prefix) {
-				return "AS58807"
-			}
-		}
-		return "AS58453"
-	case strings.HasPrefix(ip, "103.11.109") || strings.HasPrefix(ip, "45.204.69") ||
-		strings.HasPrefix(ip, "223.121"):
+	case strings.HasPrefix(ip, "223.120.19") || strings.HasPrefix(ip, "223.120.17") || strings.HasPrefix(ip, "223.120.16"):
+		return "AS58807"
+	case strings.HasPrefix(ip, "223.118") || strings.HasPrefix(ip, "223.119") || strings.HasPrefix(ip, "223.120") || strings.HasPrefix(ip, "223.121"):
 		return "AS58453"
 	default:
 		return ""
