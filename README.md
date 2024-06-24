@@ -20,17 +20,24 @@
 
 ## TODO
 
+- [ ] 使用nexttrace进行路由检测，备用方案才使用本地路由检测
 - [ ] 自动检测汇聚层，裁剪结果不输出汇聚层后的线路
 
 ## 使用
 
-更新时间：2024.05.18
+更新时间：2024.06.24
 
 ```shell
 curl https://raw.githubusercontent.com/oneclickvirt/backtrace/main/backtrace_install.sh -sSf | sh
 ```
 
 无环境依赖，理论上适配所有系统和主流架构，更多架构请查看 https://github.com/oneclickvirt/backtrace/releases/tag/output
+
+## 在Golang中使用
+
+```
+go get github.com/oneclickvirt/backtrace@latest
+```
 
 ## 概览图
 
