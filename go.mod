@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/oneclickvirt/basics v0.0.0-20240524033341-86198d11d5f0 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 )

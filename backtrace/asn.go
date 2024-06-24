@@ -5,7 +5,7 @@ import (
 	"net"
 	"strings"
 
-	. "github.com/oneclickvirt/backtrace/defaultset"
+	. "github.com/oneclickvirt/basics/defaultset"
 )
 
 type Result struct {
