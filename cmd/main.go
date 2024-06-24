@@ -23,25 +23,28 @@ func main() {
 		http.Get("https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Foneclickvirt%2Fbacktrace&count_bg=%2323E01C&title_bg=%23555555&icon=sonarcloud.svg&icon_color=%23E7E7E7&title=hits&edge_flat=false")
 	}()
 	fmt.Println(Green("项目地址:"), Yellow("https://github.com/oneclickvirt/backtrace"))
-	var showVersion bool
+	var showVersion, showIpInfo bool
 	flag.BoolVar(&showVersion, "v", false, "show version")
+	flag.BoolVar(&showIpInfo, "s", true, "diabel show ip info")
 	flag.BoolVar(&backtrace.EnableLoger, "e", false, "Enable logging")
 	flag.Parse()
 	if showVersion {
 		fmt.Println(backtrace.BackTraceVersion)
 		return
 	}
-	rsp, err := http.Get("http://ipinfo.io")
-	if err != nil {
-		fmt.Errorf("Get ip info err %v \n", err.Error())
-	} else {
-		info := IpInfo{}
-		err = json.NewDecoder(rsp.Body).Decode(&info)
+	if showIpInfo {
+		rsp, err := http.Get("http://ipinfo.io")
 		if err != nil {
-			fmt.Errorf("json decode err %v \n", err.Error())
+			fmt.Errorf("Get ip info err %v \n", err.Error())
 		} else {
-			fmt.Println(Green("国家: ") + White(info.Country) + Green(" 城市: ") + White(info.City) +
-				Green(" 服务商: ") + Blue(info.Org))
+			info := IpInfo{}
+			err = json.NewDecoder(rsp.Body).Decode(&info)
+			if err != nil {
+				fmt.Errorf("json decode err %v \n", err.Error())
+			} else {
+				fmt.Println(Green("国家: ") + White(info.Country) + Green(" 城市: ") + White(info.City) +
+					Green(" 服务商: ") + Blue(info.Org))
+			}
 		}
 	}
 	backtrace.BackTrace()

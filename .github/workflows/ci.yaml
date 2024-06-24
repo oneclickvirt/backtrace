@@ -24,7 +24,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
-          TAG="v0.0.3-$(date +'%Y%m%d%H%M%S')"
+          TAG="v0.0.4-$(date +'%Y%m%d%H%M%S')"
           git tag $TAG
           git push origin $TAG
         env:
