@@ -4,9 +4,10 @@
 package backtrace
 
 import (
-	. "github.com/oneclickvirt/backtrace/defaultset"
-	"golang.org/x/sys/windows"
 	"net"
+
+	. "github.com/oneclickvirt/defaultset"
+	"golang.org/x/sys/windows"
 )
 
 func (t *Tracer) listen(network string, laddr *net.IPAddr) (*net.IPConn, error) {
