@@ -25,6 +25,7 @@ func main() {
 	fmt.Println(Green("项目地址:"), Yellow("https://github.com/oneclickvirt/backtrace"))
 	var showVersion bool
 	flag.BoolVar(&showVersion, "v", false, "show version")
+	flag.BoolVar(&backtrace.EnableLoger, "e", false, "Enable logging")
 	flag.Parse()
 	if showVersion {
 		fmt.Println(backtrace.BackTraceVersion)
