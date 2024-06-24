@@ -1,3 +1,3 @@
 package backtrace
 
-const Version = "0.0.1"
+const BackTraceVersion = "0.0.1"

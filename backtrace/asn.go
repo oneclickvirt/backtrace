@@ -5,7 +5,7 @@ import (
 	"net"
 	"strings"
 
-	. "github.com/oneclickvirt/basics/defaultset"
+	. "github.com/oneclickvirt/defaultset"
 )
 
 type Result struct {
@@ -143,8 +143,8 @@ func ipAsn(ip string) string {
 		return "AS9929"
 	case strings.HasPrefix(ip, "219.158"):
 		return "AS4837"
-	case strings.HasPrefix(ip, "223.120.19") || strings.HasPrefix(ip, "223.120.17") || strings.HasPrefix(ip, "223.120.16") || 
-		strings.HasPrefix(ip, "223.120.140") || strings.HasPrefix(ip, "223.120.130") || strings.HasPrefix(ip, "223.120.131") || 
+	case strings.HasPrefix(ip, "223.120.19") || strings.HasPrefix(ip, "223.120.17") || strings.HasPrefix(ip, "223.120.16") ||
+		strings.HasPrefix(ip, "223.120.140") || strings.HasPrefix(ip, "223.120.130") || strings.HasPrefix(ip, "223.120.131") ||
 		strings.HasPrefix(ip, "223.120.141"):
 		return "AS58807"
 	case strings.HasPrefix(ip, "223.118") || strings.HasPrefix(ip, "223.119") || strings.HasPrefix(ip, "223.120") || strings.HasPrefix(ip, "223.121"):
