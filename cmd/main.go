@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/oneclickvirt/backtrace/backtrace"
+	backtrace "github.com/oneclickvirt/backtrace/bk"
 	. "github.com/oneclickvirt/defaultset"
 )
 
