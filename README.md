@@ -27,11 +27,35 @@
 
 更新时间：2024.06.24
 
+下载及安装
+
 ```shell
 curl https://raw.githubusercontent.com/oneclickvirt/backtrace/main/backtrace_install.sh -sSf | sh
 ```
 
+使用
+
+```
+backtrace
+```
+
+或
+
+```
+./backtrace
+```
+
+进行测试
+
 无环境依赖，理论上适配所有系统和主流架构，更多架构请查看 https://github.com/oneclickvirt/backtrace/releases/tag/output
+
+
+## 卸载
+
+```
+rm -rf /root/backtrace
+rm -rf /usr/bin/backtrace
+```
 
 ## 在Golang中使用
 
