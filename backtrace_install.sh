@@ -1,6 +1,6 @@
 #!/bin/bash
 #From https://github.com/oneclickvirt/backtrace
-#2024.05.21
+#2024.06.28
 
 rm -rf /usr/bin/backtrace
 os=$(uname -s)
@@ -82,9 +82,4 @@ case $os in
 esac
 
 chmod 777 backtrace
-if [ ! -f /usr/bin/backtrace ]; then
-  mv backtrace /usr/bin/
-  backtrace
-else
-  ./backtrace
-fi
+cp backtrace /usr/bin/backtrace
