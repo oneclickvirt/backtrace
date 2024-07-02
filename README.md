@@ -54,7 +54,11 @@ backtrace
 无环境依赖，理论上适配所有系统和主流架构，更多架构请查看 https://github.com/oneclickvirt/backtrace/releases/tag/output
 
 ```
-
+Usage: backtrace [options]
+  -e    Enable logging
+  -h    Show help information
+  -s    Disabe show ip info (default true)
+  -v    Show version
 ```
 
 ## 卸载
