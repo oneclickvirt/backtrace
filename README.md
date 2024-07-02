@@ -25,12 +25,16 @@
 
 ## 使用
 
-更新时间：2024.06.24
-
-下载及安装
+下载、安装、更新
 
 ```shell
-curl https://raw.githubusercontent.com/oneclickvirt/backtrace/main/backtrace_install.sh -sSf | sh
+curl https://raw.githubusercontent.com/oneclickvirt/backtrace/main/backtrace_install.sh -sSf | bash
+```
+
+或
+
+```
+curl https://cdn.spiritlhl.net/https://raw.githubusercontent.com/oneclickvirt/backtrace/main/backtrace_install.sh -sSf | bash
 ```
 
 使用
@@ -49,6 +53,9 @@ backtrace
 
 无环境依赖，理论上适配所有系统和主流架构，更多架构请查看 https://github.com/oneclickvirt/backtrace/releases/tag/output
 
+```
+
+```
 
 ## 卸载
 
