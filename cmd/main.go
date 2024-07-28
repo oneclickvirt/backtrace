@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"runtime"
 	"os"
 
 	backtrace "github.com/oneclickvirt/backtrace/bk"
@@ -58,4 +59,8 @@ func main() {
 	backtrace.BackTrace()
 	fmt.Println(Yellow("准确线路自行查看详细路由，本测试结果仅作参考"))
 	fmt.Println(Yellow("同一目标地址多个线路时，可能检测已越过汇聚层，除了第一个线路外，后续信息可能无效"))
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		fmt.Println("Press Enter to exit...")
+		fmt.Scanln()
+	}
 }
