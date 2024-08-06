@@ -10,7 +10,7 @@
 
 ## 功能
 
-- [x] 检测回程显示IPV4地址时的线路，不显示IP地址时显示ASN检测不到，原版[backtrace](https://github.com/zhanghanyun/backtrace)也支持
+- [x] 检测回程显示IPV4地址时的线路(使用1500字节的包)，不显示IP地址时显示ASN检测不到，原版[backtrace](https://github.com/zhanghanyun/backtrace)也支持
 - [x] 支持对```4837```、```9929```和```163```线路的判断，原版[backtrace](https://github.com/zhanghanyun/backtrace)也支持
 - [x] 支持对```CN2GT```和```CN2GIA```线路的判断，原版[backtrace](https://github.com/zhanghanyun/backtrace)不支持，原版全部识别为```CN2```了
 - [x] 支持对```CMIN2```和```CMI```线路的判断，原版[backtrace](https://github.com/zhanghanyun/backtrace)也支持，但所支持的IP区间不一样，本项目更多
@@ -20,8 +20,8 @@
 
 ## TODO
 
-- [ ] 使用nexttrace进行路由检测，备用方案才使用本地路由检测
 - [ ] 增加对CTG回程的判断
+- [ ] 使用nexttrace进行路由检测，备用方案才使用本地路由检测
 - [ ] 自动检测汇聚层，裁剪结果不输出汇聚层后的线路
 
 ## 使用
