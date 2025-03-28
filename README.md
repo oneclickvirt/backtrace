@@ -4,11 +4,7 @@
 
 [![Build and Release](https://github.com/oneclickvirt/backtrace/actions/workflows/main.yaml/badge.svg)](https://github.com/oneclickvirt/backtrace/actions/workflows/main.yaml)
 
-
-
 三网回程路由线路测试
-
-基于 https://github.com/zhanghanyun/backtrace 的重构和优化，与原版存在很大不同
 
 路由的线路判断最终还是得人工判断的才准确，本项目测试结果仅供参考
 
@@ -25,8 +21,9 @@
 ## TODO
 
 - [ ] 增加对CTG回程的判断
-- [ ] 使用nexttrace进行路由检测，备用方案才使用本地路由检测
-- [ ] 自动检测汇聚层，裁剪结果不输出汇聚层后的线路
+- [ ] 自动检测汇聚层，裁剪结果不输出汇聚层后的线路(区分境内外段)
+- [ ] 添加对主流ISP的POP点检测，区分国际互联能力
+- [ ] 增加IPV6路由能力检测
 
 ## 使用
 
@@ -86,3 +83,7 @@ go get github.com/oneclickvirt/backtrace@latest
 ![图片](https://github.com/oneclickvirt/backtrace/assets/103393591/2812a47d-4e6b-4091-9bb9-596af6c3c8bc)
 
 ![图片](https://github.com/oneclickvirt/backtrace/assets/103393591/2e5cc625-e0da-41ff-85ff-9d21c01114a3)
+
+## Thanks
+
+部分代码基于 https://github.com/zhanghanyun/backtrace 的重构和优化，与原版存在很大不同
