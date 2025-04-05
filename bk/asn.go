@@ -29,6 +29,7 @@ var (
 	}
 	m = map[string]string{
 		// [] 前的字符串个数，中文占2个字符串
+		"AS23764": "电信CTGNET [精品线路]",
 		"AS4809a": "电信CN2GIA [精品线路]",
 		"AS4809b": "电信CN2GT  [优质线路]",
 		"AS4134":  "电信163    [普通线路]",
@@ -109,6 +110,10 @@ func trace(ch chan Result, i int) {
 				if !strings.Contains(tempText, asnDescription) {
 					tempText += DarkGreen(asnDescription) + " "
 				}
+			case "AS23764":
+				if !strings.Contains(tempText, asnDescription) {
+					tempText += DarkGreen(asnDescription) + " "
+				}
 			case "AS4809b":
 				if !strings.Contains(tempText, asnDescription) {
 					tempText += Green(asnDescription) + " "
@@ -149,6 +154,8 @@ func ipAsn(ip string) string {
 		return "AS58807"
 	case strings.HasPrefix(ip, "223.118") || strings.HasPrefix(ip, "223.119") || strings.HasPrefix(ip, "223.120") || strings.HasPrefix(ip, "223.121"):
 		return "AS58453"
+	case strings.HasPrefix(ip, "69.194") || strings.HasPrefix(ip, "203.22"):
+		return "AS23764"
 	default:
 		return ""
 	}

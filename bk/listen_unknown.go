@@ -1,3 +1,6 @@
+//go:build !linux && !freebsd && !openbsd && !darwin && !windows
+// +build !linux,!freebsd,!openbsd,!darwin,!windows
+
 package backtrace
 
 import (
