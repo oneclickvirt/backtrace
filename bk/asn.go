@@ -14,18 +14,29 @@ type Result struct {
 }
 
 var (
-	ips = []string{
+	ipv4s = []string{
 		// "219.141.136.12", "202.106.50.1",
 		"219.141.140.10", "202.106.195.68", "221.179.155.161",
 		"202.96.209.133", "210.22.97.1", "211.136.112.200",
 		"58.60.188.222", "210.21.196.6", "120.196.165.24",
 		"61.139.2.69", "119.6.6.6", "211.137.96.205",
 	}
-	names = []string{
+	ipv6s = []string{
+		"2408:80f0:4100:2005::10", // 北京电信 IPv6
+		"2408:8000:1010:1::6",     // 北京联通 IPv6
+		"2409:8000:1003:5::5",     // 北京移动 IPv6
+		"2408:8026:1:1::6",        // 上海联通 IPv6
+		"2409:8089:1020:50::6",    // 上海移动 IPv6
+	}
+	ipv4Names = []string{
 		"北京电信", "北京联通", "北京移动",
 		"上海电信", "上海联通", "上海移动",
 		"广州电信", "广州联通", "广州移动",
 		"成都电信", "成都联通", "成都移动",
+	}
+	ipv6Names = []string{
+		"北京电信v6", "北京联通v6", "北京移动v6",
+        "上海联通v6", "上海移动v6",
 	}
 	m = map[string]string{
 		// [] 前的字符串个数，中文占2个字符串
@@ -56,9 +67,9 @@ func removeDuplicates(elements []string) []string {
 }
 
 func trace(ch chan Result, i int) {
-	hops, err := Trace(net.ParseIP(ips[i]))
+	hops, err := Trace(net.ParseIP(ipv4s[i]))
 	if err != nil {
-		s := fmt.Sprintf("%v %-15s %v", names[i], ips[i], err)
+		s := fmt.Sprintf("%v %-15s %v", ipv4Names[i], ipv4s[i], err)
 		ch <- Result{i, s}
 		return
 	}
@@ -75,7 +86,7 @@ func trace(ch chan Result, i int) {
 	if asns != nil && len(asns) > 0 {
 		var tempText string
 		asns = removeDuplicates(asns)
-		tempText += fmt.Sprintf("%v ", names[i])
+		tempText += fmt.Sprintf("%v ", ipv4Names[i])
 		hasAS4134 := false
 		hasAS4809 := false
 		for _, asn := range asns {
@@ -94,7 +105,7 @@ func trace(ch chan Result, i int) {
 			// 仅包含 AS4809 属于 CN2GIA
 			asns = append([]string{"AS4809a"}, asns...)
 		}
-		tempText += fmt.Sprintf("%-15s ", ips[i])
+		tempText += fmt.Sprintf("%-15s ", ipv4s[i])
 		for _, asn := range asns {
 			asnDescription := m[asn]
 			switch asn {
@@ -128,17 +139,20 @@ func trace(ch chan Result, i int) {
 				}
 			}
 		}
-		if tempText == (fmt.Sprintf("%v ", names[i]) + fmt.Sprintf("%-15s ", ips[i])) {
+		if tempText == (fmt.Sprintf("%v ", ipv4Names[i]) + fmt.Sprintf("%-15s ", ipv4s[i])) {
 			tempText += fmt.Sprintf("%v", Red("检测不到已知线路的ASN"))
 		}
 		ch <- Result{i, tempText}
 	} else {
-		s := fmt.Sprintf("%v %-15s %v", names[i], ips[i], Red("检测不到回程路由节点的IP地址"))
+		s := fmt.Sprintf("%v %-15s %v", ipv4Names[i], ipv4s[i], Red("检测不到回程路由节点的IP地址"))
 		ch <- Result{i, s}
 	}
 }
 
 func ipAsn(ip string) string {
+	if strings.Contains(ip, ":") {
+		return ipv6Asn(ip)
+	}
 	switch {
 	case strings.HasPrefix(ip, "59.43"):
 		return "AS4809"

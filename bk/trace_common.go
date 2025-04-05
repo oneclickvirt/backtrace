@@ -17,11 +17,11 @@ import (
 
 // DefaultConfig is the default configuration for Tracer.
 var DefaultConfig = Config{
-	Delay:    50 * time.Millisecond,
-	Timeout:  500 * time.Millisecond,
-	MaxHops:  15,
-	Count:    1,
-	Networks: []string{"ip4:icmp", "ip4:ip"},
+    Delay:    50 * time.Millisecond,
+    Timeout:  500 * time.Millisecond,
+    MaxHops:  15,
+    Count:    1,
+    Networks: []string{"ip4:icmp", "ip4:ip", "ip6:ipv6-icmp", "ip6:ip"},
 }
 
 // DefaultTracer is a tracer with DefaultConfig.
@@ -126,17 +126,6 @@ func (t *Tracer) init() {
 			}
 		}
 	}
-	// 初始化IPv6 ICMP连接
-	c, err := net.ListenPacket("ip6:ipv6-icmp", "")
-	if err == nil {
-		p := ipv6.NewPacketConn(c)
-		if err := p.SetControlMessage(ipv6.FlagHopLimit|ipv6.FlagSrc|ipv6.FlagDst|ipv6.FlagInterface, true); err == nil {
-			t.ipv6conn = p
-			go t.serveIPv6(p)
-		} else {
-			c.Close()
-		}
-	}
 }
 
 // Close closes listening socket.
@@ -167,55 +156,73 @@ func (t *Tracer) serve(conn *net.IPConn) error {
 }
 
 func (t *Tracer) serveData(from net.IP, b []byte) error {
-	if from.To4() == nil {
-		// TODO: implement ProtocolIPv6ICMP
-		return errUnsupportedProtocol
-	}
-	now := time.Now()
-	msg, err := icmp.ParseMessage(ProtocolICMP, b)
-	if err != nil {
-		return err
-	}
-	if msg.Type == ipv4.ICMPTypeEchoReply {
-		echo := msg.Body.(*icmp.Echo)
-		return t.serveReply(from, &packet{from, uint16(echo.ID), 1, now})
-	}
-	b = getReplyData(msg)
-	if len(b) < ipv4.HeaderLen {
-		return errMessageTooShort
-	}
-	switch b[0] >> 4 {
-	case ipv4.Version:
-		ip, err := ipv4.ParseHeader(b)
-		if err != nil {
-			return err
-		}
-		return t.serveReply(ip.Dst, &packet{from, uint16(ip.ID), ip.TTL, now})
-	case ipv6.Version:
-		ip, err := ipv6.ParseHeader(b)
-		if err != nil {
-			return err
-		}
-		return t.serveReply(ip.Dst, &packet{from, uint16(ip.FlowLabel), ip.HopLimit, now})
-	default:
-		return errUnsupportedProtocol
-	}
+    if from.To4() == nil {
+        // IPv6 处理
+        msg, err := icmp.ParseMessage(ProtocolIPv6ICMP, b)
+        if err != nil {
+            return err
+        }
+        if msg.Type == ipv6.ICMPTypeEchoReply {
+            echo := msg.Body.(*icmp.Echo)
+            return t.serveReply(from, &packet{from, uint16(echo.ID), 1, time.Now()})
+        }
+        b = getReplyData(msg)
+        if len(b) < ipv6.HeaderLen {
+            return errMessageTooShort
+        }
+        switch b[0] >> 4 {
+        case ipv6.Version:
+            ip, err := ipv6.ParseHeader(b)
+            if err != nil {
+                return err
+            }
+            return t.serveReply(ip.Dst, &packet{from, uint16(ip.FlowLabel), ip.HopLimit, time.Now()})
+        default:
+            return errUnsupportedProtocol
+        }
+    } else {
+        // 原有的IPv4处理逻辑
+        msg, err := icmp.ParseMessage(ProtocolICMP, b)
+        if err != nil {
+            return err
+        }
+        if msg.Type == ipv4.ICMPTypeEchoReply {
+            echo := msg.Body.(*icmp.Echo)
+            return t.serveReply(from, &packet{from, uint16(echo.ID), 1, time.Now()})
+        }
+        b = getReplyData(msg)
+        if len(b) < ipv4.HeaderLen {
+            return errMessageTooShort
+        }
+        switch b[0] >> 4 {
+        case ipv4.Version:
+            ip, err := ipv4.ParseHeader(b)
+            if err != nil {
+                return err
+            }
+            return t.serveReply(ip.Dst, &packet{from, uint16(ip.ID), ip.TTL, time.Now()})
+        default:
+            return errUnsupportedProtocol
+        }
+    }
 }
 
 func (t *Tracer) sendRequest(dst net.IP, ttl int) (*packet, error) {
-	if dst.To4() == nil {
-		// IPv6
-		return t.sendRequestV6(dst, ttl)
-	}
-	// Ipv4
-	id := uint16(atomic.AddUint32(&t.seq, 1))
-	b := newPacketV4(id, dst, ttl)
-	req := &packet{dst, id, ttl, time.Now()}
-	_, err := t.conn.WriteToIP(b, &net.IPAddr{IP: dst})
-	if err != nil {
-		return nil, err
-	}
-	return req, nil
+    id := uint16(atomic.AddUint32(&t.seq, 1))
+    var b []byte
+    if dst.To4() == nil {
+        // IPv6
+        b = newPacketV6(id, dst, ttl)
+    } else {
+        // IPv4
+        b = newPacketV4(id, dst, ttl)
+    }
+    req := &packet{dst, id, ttl, time.Now()}
+    _, err := t.conn.WriteToIP(b, &net.IPAddr{IP: dst})
+    if err != nil {
+        return nil, err
+    }
+    return req, nil
 }
 
 func (t *Tracer) addSession(s *Session) {
