@@ -85,3 +85,5 @@ go get github.com/oneclickvirt/backtrace@latest
 ## Thanks
 
 部分代码基于 https://github.com/zhanghanyun/backtrace 的重构和优化，与原版存在很大不同
+
+IPV4/IPV6可ICMP进行ping测试的 https://github.com/spiritLHLS/icmp_targets 收集仓库
