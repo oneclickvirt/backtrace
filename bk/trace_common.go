@@ -116,16 +116,27 @@ func (t *Tracer) NewSession(ip net.IP) (*Session, error) {
 }
 
 func (t *Tracer) init() {
-	// 初始化IPv4连接
-	for _, network := range t.Networks {
-		if strings.HasPrefix(network, "ip4") {
-			t.conn, t.err = t.listen(network, t.Addr)
-			if t.err == nil {
-				go t.serve(t.conn)
-				break
-			}
-		}
-	}
+    // 初始化IPv4连接
+    for _, network := range t.Networks {
+        if strings.HasPrefix(network, "ip4") {
+            t.conn, t.err = t.listen(network, t.Addr)
+            if t.err == nil {
+                go t.serve(t.conn)
+                break
+            }
+        }
+    }
+    // 初始化IPv6连接
+    for _, network := range t.Networks {
+        if strings.HasPrefix(network, "ip6") {
+            conn, err := net.ListenIP(network, t.Addr)
+            if err == nil {
+                t.ipv6conn = ipv6.NewPacketConn(conn)
+                go t.serveIPv6(t.ipv6conn)
+                break
+            }
+        }
+    }
 }
 
 // Close closes listening socket.
@@ -210,19 +221,30 @@ func (t *Tracer) serveData(from net.IP, b []byte) error {
 func (t *Tracer) sendRequest(dst net.IP, ttl int) (*packet, error) {
     id := uint16(atomic.AddUint32(&t.seq, 1))
     var b []byte
+    req := &packet{dst, id, ttl, time.Now()}
     if dst.To4() == nil {
         // IPv6
         b = newPacketV6(id, dst, ttl)
+        if t.ipv6conn != nil {
+            cm := &ipv6.ControlMessage{
+                HopLimit: ttl,
+            }
+            _, err := t.ipv6conn.WriteTo(b, cm, &net.IPAddr{IP: dst})
+            if err != nil {
+                return nil, err
+            }
+            return req, nil
+        }
+        return nil, errors.New("IPv6 connection not available")
     } else {
         // IPv4
         b = newPacketV4(id, dst, ttl)
+        _, err := t.conn.WriteToIP(b, &net.IPAddr{IP: dst})
+        if err != nil {
+            return nil, err
+        }
+        return req, nil
     }
-    req := &packet{dst, id, ttl, time.Now()}
-    _, err := t.conn.WriteToIP(b, &net.IPAddr{IP: dst})
-    if err != nil {
-        return nil, err
-    }
-    return req, nil
 }
 
 func (t *Tracer) addSession(s *Session) {
