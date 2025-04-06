@@ -4,37 +4,55 @@ import (
 	"strings"
 )
 
-// 识别IPv6地址的ASN
+//go:embed bk/prefix/as4809.txt
+var as4809Data string
+
+//go:embed bk/prefix/as4134.txt
+var as4134Data string
+
+//go:embed bk/prefix/as9929.txt
+var as9929Data string
+
+//go:embed bk/prefix/as4837.txt
+var as4837Data string
+
+//go:embed bk/prefix/as58807.txt
+var as58807Data string
+
+//go:embed bk/prefix/as9808.txt
+var as9808Data string
+
+//go:embed bk/prefix/as58453.txt
+var as58453Data string
+
+//go:embed bk/prefix/as23764.txt
+var as23764Data string
+
+// ASN -> Prefix strings
+var asnPrefixes = map[string][]string{
+	"AS4809":   strings.Split(as4809Data, "\n"),   // 电信 CN2 GT/GIA
+	"AS4134":   strings.Split(as4134Data, "\n"),   // 电信 163 骨干网
+	"AS9929":   strings.Split(as9929Data, "\n"),   // 联通 9929 优质国际线路
+	"AS4837":   strings.Split(as4837Data, "\n"),   // 联通 AS4837 普通国际线路
+	"AS58807":  strings.Split(as58807Data, "\n"),  // 移动 CMIN2 国际精品网
+	"AS9808":   strings.Split(as9808Data, "\n"),   // 移动 CMI（中国移动国际公司）
+	"AS58453":  strings.Split(as58453Data, "\n"),  // 移动国际互联网（CMI/HK）
+	"AS23764":  strings.Split(as23764Data, "\n"),  // 电信 CTGNET/国际出口（可能是CN2-B）
+}
+
+// 判断 IPv6 地址是否匹配 ASN 中的某个前缀
 func ipv6Asn(ip string) string {
-	switch {
-	// 电信CN2GIA
-	case strings.HasPrefix(ip, "2408:80"):
-		return "AS4809a"
-	// 电信CN2GT
-	case strings.HasPrefix(ip, "2408:8000"):
-		return "AS4809b"
-	// 电信163
-	case strings.HasPrefix(ip, "240e:") || strings.HasPrefix(ip, "2408:8"):
-		return "AS4134"
-	// 联通9929
-	case strings.HasPrefix(ip, "2408:8026:"):
-		return "AS9929"
-	// 联通4837
-	case strings.HasPrefix(ip, "2408:8000:"):
-		return "AS4837"
-	// 移动CMIN2
-	case strings.HasPrefix(ip, "2409:8880:"):
-		return "AS58807"
-	// 移动CMI
-	case strings.HasPrefix(ip, "2409:8000:") || strings.HasPrefix(ip, "2409:"):
-		return "AS9808"
-	// 移动CMI
-	case strings.HasPrefix(ip, "2407:") || strings.HasPrefix(ip, "2401:"):
-		return "AS58453"
-	// 电信CTGNET
-	case strings.HasPrefix(ip, "2402:0:") || strings.HasPrefix(ip, "2400:8:"):
-		return "AS23764"
-	default:
-		return ""
+	ip = strings.ToLower(ip)
+	for asn, prefixes := range asnPrefixes {
+		for _, prefix := range prefixes {
+			prefix = strings.TrimSpace(prefix)
+			if prefix == "" {
+				continue
+			}
+			if strings.HasPrefix(ip, prefix) {
+				return asn
+			}
+		}
 	}
+	return ""
 }

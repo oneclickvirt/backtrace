@@ -1,0 +1,48 @@
+name: 创建IPv6检测的前缀
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  fetch-ipv6-prefixes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 获取并处理多个ASN的IPv6前缀
+        run: |
+          mkdir -p bk/prefix/
+          for asn in AS4809 AS4134 AS9929 AS4837 AS58807 AS9808 AS58453 AS23764; do
+            echo "处理 $asn..."
+            curl -s -A "Mozilla/5.0" \
+                 "https://bgp.he.net/$asn" > "${asn}.html"
+            grep -oE '[0-9a-f:]+::/[0-9]+' "${asn}.html" | sort -u > tmp_prefixes.txt
+            {
+              while read prefix; do
+                ip_part=$(echo "$prefix" | cut -d/ -f1)
+                prefix_len=$(echo "$prefix" | cut -d/ -f2)
+                keep_segments=$((prefix_len / 16))
+                segments=$(echo "$ip_part" | tr ':' '\n' | grep -v '^$')
+                kept=$(echo "$segments" | head -n "$keep_segments" | tr '\n' ':' | sed 's/:$//')
+                echo "$kept"
+              done < tmp_prefixes.txt
+            } | sort -u > "bk/prefix/${asn,,}.txt"
+            rm -f "${asn}.html" tmp_prefixes.txt
+          done
+
+      - name: 提交更新到仓库
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bk/prefix/*.txt
+          if git diff --cached --quiet; then
+            echo "无变更，跳过提交。"
+          else
+            git commit -m "chore: 更新多个 ASN 的 IPv6 前缀"
+            git push
+          fi
