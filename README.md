@@ -55,10 +55,10 @@ backtrace
 
 ```
 Usage: backtrace [options]
-  -e    Enable logging
-  -h    Show help information
-  -s    Disabe show ip info (default true)
-  -v    Show version
+  -log    Enable logging
+  -h      Show help information
+  -s      Disabe show ip info (default true)
+  -v      Show version
 ```
 
 ## 卸载

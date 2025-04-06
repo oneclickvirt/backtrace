@@ -30,7 +30,7 @@ func main() {
 	backtraceFlag.BoolVar(&help, "h", false, "Show help information")
 	backtraceFlag.BoolVar(&showVersion, "v", false, "Show version")
 	backtraceFlag.BoolVar(&showIpInfo, "s", true, "Disabe show ip info")
-	backtraceFlag.BoolVar(&backtrace.EnableLoger, "e", false, "Enable logging")
+	backtraceFlag.BoolVar(&backtrace.EnableLoger, "log", false, "Enable logging")
 	backtraceFlag.BoolVar(&test, "test", false, "Test Mode")
 	backtraceFlag.Parse(os.Args[1:])
 	if help {
