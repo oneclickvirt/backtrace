@@ -59,10 +59,9 @@ func traceIPv6(ch chan Result, i int, offset int) {
 	hops, err := Trace(net.ParseIP(ipv6s[i]))
 	if err != nil {
 		s := fmt.Sprintf("%v %-40s %v", ipv6Names[i], ipv6s[i], err)
-		ch <- Result{i + offset, s} // 注意这里加了offset
+		ch <- Result{i + offset, s}
 		return
 	}
-
 	var asns []string
 	for _, h := range hops {
 		for _, n := range h.Nodes {
@@ -72,7 +71,6 @@ func traceIPv6(ch chan Result, i int, offset int) {
 			}
 		}
 	}
-
 	// 处理路由信息
 	if asns != nil && len(asns) > 0 {
 		var tempText string
