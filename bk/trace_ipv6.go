@@ -118,7 +118,7 @@ func traceIPv6(ch chan Result, i int, offset int) {
 				Logger.Info(fmt.Sprintf("%s (%s) 线路识别为: CN2GIA", ipv6Names[i], ipv6s[i]))
 			}
 		}
-		tempText += fmt.Sprintf("%-40s ", ipv6s[i])
+		tempText += fmt.Sprintf("%-24s ", ipv6s[i])
 		for _, asn := range asns {
 			asnDescription := m[asn]
 			switch asn {
@@ -164,7 +164,7 @@ func traceIPv6(ch chan Result, i int, offset int) {
 		}
 		ch <- Result{i + offset, tempText}
 	} else {
-		s := fmt.Sprintf("%v %-40s %v", ipv6Names[i], ipv6s[i], Red("检测不到回程路由节点的IP地址"))
+		s := fmt.Sprintf("%v %-24s %v", ipv6Names[i], ipv6s[i], Red("检测不到回程路由节点的IP地址"))
 		if EnableLoger {
 			Logger.Warn(fmt.Sprintf("%s (%s) 检测不到回程路由节点的IP地址", ipv6Names[i], ipv6s[i]))
 		}
