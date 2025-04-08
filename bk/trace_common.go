@@ -316,13 +316,13 @@ func (t *Tracer) serveReply(dst net.IP, res *packet) error {
 	shortDst := shortIP(dst)
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	// 调试输出会话信息
-	if EnableLoger && len(t.sess) > 0 {
-		for ip, sessions := range t.sess {
-			Logger.Info(fmt.Sprintf("会话信息: IP=%v, 会话数=%d",
-				net.IP([]byte(ip)), len(sessions)))
-		}
-	}
+	// // 调试输出会话信息
+	// if EnableLoger && len(t.sess) > 0 {
+	// 	for ip, sessions := range t.sess {
+	// 		Logger.Info(fmt.Sprintf("会话信息: IP=%v, 会话数=%d",
+	// 			net.IP([]byte(ip)), len(sessions)))
+	// 	}
+	// }
 	// 查找对应的会话
 	a := t.sess[string(shortDst)]
 	if len(a) == 0 && EnableLoger {
@@ -400,23 +400,23 @@ func (s *Session) handle(res *packet) {
 			s.ip, res.IP, res.ID, res.TTL))
 	}
 	s.mu.Lock()
-	// 打印出所有待处理的探测包
-	if EnableLoger && len(s.probes) > 0 {
-		Logger.Info(fmt.Sprintf("当前会话有 %d 个待处理的探测包", len(s.probes)))
-		for i, probe := range s.probes {
-			Logger.Info(fmt.Sprintf("探测包 #%d: ID=%d, TTL=%d, 时间=%v",
-				i, probe.ID, probe.TTL, probe.Time))
-		}
-	}
+	// // 打印出所有待处理的探测包
+	// if EnableLoger && len(s.probes) > 0 {
+	// 	Logger.Info(fmt.Sprintf("当前会话有 %d 个待处理的探测包", len(s.probes)))
+	// 	for i, probe := range s.probes {
+	// 		Logger.Info(fmt.Sprintf("探测包 #%d: ID=%d, TTL=%d, 时间=%v",
+	// 			i, probe.ID, probe.TTL, probe.Time))
+	// 	}
+	// }
 	// 查找匹配的请求包
 	for _, r := range s.probes {
 		if now.Sub(r.Time) > s.t.Timeout {
-			if EnableLoger {
-				Logger.Info(fmt.Sprintf("探测包超时: ID=%d, TTL=%d", r.ID, r.TTL))
-			}
+			// if EnableLoger {
+			// 	Logger.Info(fmt.Sprintf("探测包超时: ID=%d, TTL=%d", r.ID, r.TTL))
+			// }
 			continue
 		}
-		// 对于IPv6，可能需要松散匹配
+		// 对于IPv6 松散匹配
 		if r.ID == res.ID || res.IP.To4() == nil {
 			if EnableLoger {
 				Logger.Info(fmt.Sprintf("找到匹配的探测包: ID=%d, TTL=%d", r.ID, r.TTL))
