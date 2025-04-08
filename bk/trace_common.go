@@ -201,7 +201,6 @@ func (t *Tracer) serveData(from net.IP, b []byte) error {
 				return t.serveReply(from, &packet{from, uint16(echo.ID), 1, time.Now()})
 			}
 		} else if msg.Type == ipv6.ICMPTypeTimeExceeded {
-			// 时间超过（这是traceroute的关键响应类型）
 			b = getReplyData(msg)
 			if len(b) < ipv6.HeaderLen {
 				if EnableLoger {
@@ -308,16 +307,6 @@ func (t *Tracer) removeSession(s *Session) {
 	}
 }
 
-// func (t *Tracer) serveReply(dst net.IP, res *packet) error {
-// 	t.mu.RLock()
-// 	defer t.mu.RUnlock()
-// 	a := t.sess[string(shortIP(dst))]
-// 	for _, s := range a {
-// 		s.handle(res)
-// 	}
-// 	return nil
-// }
-
 func (t *Tracer) serveReply(dst net.IP, res *packet) error {
 	if EnableLoger {
 		Logger.Info(fmt.Sprintf("处理回复: 目标=%v, 来源=%v, ID=%d, TTL=%d",
@@ -402,41 +391,6 @@ func (s *Session) isDone(ttl int) bool {
 	return true
 }
 
-// func (s *Session) handle(res *packet) {
-// 	now := res.Time
-// 	n := 0
-// 	var req *packet
-// 	s.mu.Lock()
-// 	for _, r := range s.probes {
-// 		if now.Sub(r.Time) > s.t.Timeout {
-// 			continue
-// 		}
-// 		if r.ID == res.ID {
-// 			req = r
-// 			continue
-// 		}
-// 		s.probes[n] = r
-// 		n++
-// 	}
-// 	s.probes = s.probes[:n]
-// 	s.mu.Unlock()
-// 	if req == nil {
-// 		return
-// 	}
-// 	hops := req.TTL - res.TTL + 1
-// 	if hops < 1 {
-// 		hops = 1
-// 	}
-// 	select {
-// 	case s.ch <- &Reply{
-// 		IP:   res.IP,
-// 		RTT:  res.Time.Sub(req.Time),
-// 		Hops: hops,
-// 	}:
-// 	default:
-// 	}
-// }
-
 func (s *Session) handle(res *packet) {
 	now := res.Time
 	n := 0
@@ -463,7 +417,7 @@ func (s *Session) handle(res *packet) {
 			continue
 		}
 		// 对于IPv6，可能需要松散匹配
-		if r.ID == res.ID || (res.IP.To4() == nil && res.ID == 0) {
+		if r.ID == res.ID || res.IP.To4() == nil {
 			if EnableLoger {
 				Logger.Info(fmt.Sprintf("找到匹配的探测包: ID=%d, TTL=%d", r.ID, r.TTL))
 			}
