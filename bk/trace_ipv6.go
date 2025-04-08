@@ -54,13 +54,30 @@ func (t *Tracer) serveIPv6(conn *ipv6.PacketConn) error {
 	}
 }
 
-// IPv6追踪函数
+// traceIPv6 IPv6追踪函数
 func traceIPv6(ch chan Result, i int, offset int) {
+	if EnableLoger {
+		InitLogger()
+		defer Logger.Sync()
+		Logger.Info(fmt.Sprintf("开始追踪 %s (%s)", ipv6Names[i], ipv6s[i]))
+	}
 	hops, err := Trace(net.ParseIP(ipv6s[i]))
 	if err != nil {
 		s := fmt.Sprintf("%v %-40s %v", ipv6Names[i], ipv6s[i], err)
+		if EnableLoger {
+			Logger.Error(fmt.Sprintf("追踪 %s (%s) 失败: %v", ipv6Names[i], ipv6s[i], err))
+		}
 		ch <- Result{i + offset, s}
 		return
+	}
+	// 记录每个hop的信息
+	if EnableLoger {
+		for hopNum, hop := range hops {
+			for nodeNum, node := range hop.Nodes {
+				Logger.Info(fmt.Sprintf("追踪 %s (%s) - Hop %d, Node %d: %s (RTT: %v)",
+					ipv6Names[i], ipv6s[i], hopNum+1, nodeNum+1, node.IP.String(), node.RTT))
+			}
+		}
 	}
 	var asns []string
 	for _, h := range hops {
@@ -68,6 +85,9 @@ func traceIPv6(ch chan Result, i int, offset int) {
 			asn := ipAsn(n.IP.String())
 			if asn != "" {
 				asns = append(asns, asn)
+				if EnableLoger {
+					Logger.Info(fmt.Sprintf("IP %s 对应的ASN: %s", n.IP.String(), asn))
+				}
 			}
 		}
 	}
@@ -90,9 +110,15 @@ func traceIPv6(ch chan Result, i int, offset int) {
 		if hasAS4134 && hasAS4809 {
 			// 同时包含 AS4134 和 AS4809 属于 CN2GT
 			asns = append([]string{"AS4809b"}, asns...)
+			if EnableLoger {
+				Logger.Info(fmt.Sprintf("%s (%s) 线路识别为: CN2GT", ipv6Names[i], ipv6s[i]))
+			}
 		} else if hasAS4809 {
 			// 仅包含 AS4809 属于 CN2GIA
 			asns = append([]string{"AS4809a"}, asns...)
+			if EnableLoger {
+				Logger.Info(fmt.Sprintf("%s (%s) 线路识别为: CN2GIA", ipv6Names[i], ipv6s[i]))
+			}
 		}
 		tempText += fmt.Sprintf("%-40s ", ipv6s[i])
 		for _, asn := range asns {
@@ -130,10 +156,20 @@ func traceIPv6(ch chan Result, i int, offset int) {
 		}
 		if tempText == (fmt.Sprintf("%v ", ipv6Names[i]) + fmt.Sprintf("%-40s ", ipv6s[i])) {
 			tempText += fmt.Sprintf("%v", Red("检测不到已知线路的ASN"))
+
+			if EnableLoger {
+				Logger.Warn(fmt.Sprintf("%s (%s) 检测不到已知线路的ASN", ipv6Names[i], ipv6s[i]))
+			}
+		}
+		if EnableLoger {
+			Logger.Info(fmt.Sprintf("%s (%s) 追踪完成，结果: %s", ipv6Names[i], ipv6s[i], tempText))
 		}
 		ch <- Result{i + offset, tempText}
 	} else {
 		s := fmt.Sprintf("%v %-40s %v", ipv6Names[i], ipv6s[i], Red("检测不到回程路由节点的IP地址"))
+		if EnableLoger {
+			Logger.Warn(fmt.Sprintf("%s (%s) 检测不到回程路由节点的IP地址", ipv6Names[i], ipv6s[i]))
+		}
 		ch <- Result{i + offset, s}
 	}
 }
