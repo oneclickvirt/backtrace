@@ -61,7 +61,7 @@ func traceIPv6(ch chan Result, i int, offset int) {
 	}
 	hops, err := Trace(net.ParseIP(ipv6s[i]))
 	if err != nil {
-		s := fmt.Sprintf("%v %-25s %v", ipv6Names[i], ipv6s[i], err)
+		s := fmt.Sprintf("%v %-24s %v", ipv6Names[i], ipv6s[i], err)
 		if EnableLoger {
 			Logger.Error(fmt.Sprintf("追踪 %s (%s) 失败: %v", ipv6Names[i], ipv6s[i], err))
 		}

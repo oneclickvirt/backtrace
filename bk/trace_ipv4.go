@@ -104,7 +104,7 @@ func trace(ch chan Result, i int) {
 				Logger.Info(fmt.Sprintf("%s (%s) 线路识别为: CN2GIA", ipv4Names[i], ipv4s[i]))
 			}
 		}
-		tempText += fmt.Sprintf("%-15s ", ipv4s[i])
+		tempText += fmt.Sprintf("%-24s ", ipv4s[i])
 		for _, asn := range asns {
 			asnDescription := m[asn]
 			switch asn {
@@ -114,27 +114,27 @@ func trace(ch chan Result, i int) {
 				continue
 			case "AS9929":
 				if !strings.Contains(tempText, asnDescription) {
-					tempText += DarkGreen(asnDescription) + "         "
+					tempText += DarkGreen(asnDescription) + " "
 				}
 			case "AS4809a":
 				if !strings.Contains(tempText, asnDescription) {
-					tempText += DarkGreen(asnDescription) + "         "
+					tempText += DarkGreen(asnDescription) + " "
 				}
 			case "AS23764":
 				if !strings.Contains(tempText, asnDescription) {
-					tempText += DarkGreen(asnDescription) + "         "
+					tempText += DarkGreen(asnDescription) + " "
 				}
 			case "AS4809b":
 				if !strings.Contains(tempText, asnDescription) {
-					tempText += Green(asnDescription) + "         "
+					tempText += Green(asnDescription) + " "
 				}
 			case "AS58807":
 				if !strings.Contains(tempText, asnDescription) {
-					tempText += Green(asnDescription) + "         "
+					tempText += Green(asnDescription) + " "
 				}
 			default:
 				if !strings.Contains(tempText, asnDescription) {
-					tempText += White(asnDescription) + "         "
+					tempText += White(asnDescription) + " "
 				}
 			}
 		}
