@@ -13,6 +13,7 @@ import (
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
+	. "github.com/oneclickvirt/defaultset"
 )
 
 // DefaultConfig is the default configuration for Tracer.
@@ -132,6 +133,16 @@ func (t *Tracer) init() {
             conn, err := net.ListenIP(network, t.Addr)
             if err == nil {
                 t.ipv6conn = ipv6.NewPacketConn(conn)
+                err = t.ipv6conn.SetControlMessage(ipv6.FlagHopLimit|ipv6.FlagSrc|ipv6.FlagDst|ipv6.FlagInterface, true)
+                if err != nil {
+                    if EnableLoger {
+						InitLogger()
+						defer Logger.Sync()
+                        Logger.Info("设置IPv6控制消息失败: " + err.Error())
+                    }
+                    t.ipv6conn.Close()
+                    continue
+                }
                 go t.serveIPv6(t.ipv6conn)
                 break
             }
@@ -224,18 +235,23 @@ func (t *Tracer) sendRequest(dst net.IP, ttl int) (*packet, error) {
     req := &packet{dst, id, ttl, time.Now()}
     if dst.To4() == nil {
         // IPv6
-        b = newPacketV6(id, dst, ttl)
+        b := newPacketV6(id, dst, ttl)
         if t.ipv6conn != nil {
             cm := &ipv6.ControlMessage{
                 HopLimit: ttl,
             }
             _, err := t.ipv6conn.WriteTo(b, cm, &net.IPAddr{IP: dst})
             if err != nil {
+                if EnableLoger {
+					InitLogger()
+					defer Logger.Sync()
+                    Logger.Info("发送IPv6请求失败: " + err.Error())
+                }
                 return nil, err
             }
             return req, nil
         }
-        return nil, errors.New("IPv6 connection not available")
+        return nil, errors.New("IPv6连接不可用")
     } else {
         // IPv4
         b = newPacketV4(id, dst, ttl)
