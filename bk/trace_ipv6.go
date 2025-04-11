@@ -60,14 +60,29 @@ func traceIPv6(ch chan Result, i int, offset int) {
 		defer Logger.Sync()
 		Logger.Info(fmt.Sprintf("开始追踪 %s (%s)", model.Ipv6Names[i], model.Ipv6s[i]))
 	}
+	// 先尝试原始IP地址
 	hops, err := Trace(net.ParseIP(model.Ipv6s[i]))
+	if err != nil || len(hops) == 0 {
+		// 如果失败，尝试从IcmpTargets获取备选IP
+		if tryAltIPs := tryAlternativeIPs(model.Ipv6Names[i], "v6"); len(tryAltIPs) > 0 {
+			for _, altIP := range tryAltIPs {
+				if model.EnableLoger {
+					Logger.Info(fmt.Sprintf("尝试备选IP %s 追踪 %s", altIP, model.Ipv6Names[i]))
+				}
+				hops, err = Trace(net.ParseIP(altIP))
+				if err == nil && len(hops) > 0 {
+					break // 成功找到可用IP
+				}
+			}
+		}
+	}
+	// 如果所有尝试都失败
 	if err != nil {
-		s := fmt.Sprintf("%v %-24s %v", model.Ipv6Names[i], model.Ipv6s[i], err)
+		s := fmt.Sprintf("%v %-24s %v", model.Ipv6Names[i], model.Ipv6s[i], Red("检测不到回程路由节点的IP地址"))
 		if model.EnableLoger {
-			Logger.Error(fmt.Sprintf("追踪 %s (%s) 失败: %v", model.Ipv6Names[i], model.Ipv6s[i], err))
+			Logger.Warn(fmt.Sprintf("%s (%s) 检测不到回程路由节点的IP地址", model.Ipv6Names[i], model.Ipv6s[i]))
 		}
 		ch <- Result{i + offset, s}
-		return
 	}
 	// 记录每个hop的信息
 	if model.EnableLoger {
@@ -164,9 +179,9 @@ func traceIPv6(ch chan Result, i int, offset int) {
 		}
 		ch <- Result{i + offset, tempText}
 	} else {
-		s := fmt.Sprintf("%v %-24s %v", model.Ipv6Names[i], model.Ipv6s[i], Red("检测不到回程路由节点的IP地址"))
+		s := fmt.Sprintf("%v %-24s %v", model.Ipv6Names[i], model.Ipv6s[i], Red("检测不到回程路由节点的IPV6地址"))
 		if model.EnableLoger {
-			Logger.Warn(fmt.Sprintf("%s (%s) 检测不到回程路由节点的IP地址", model.Ipv6Names[i], model.Ipv6s[i]))
+			Logger.Warn(fmt.Sprintf("%s (%s) 检测不到回程路由节点的IPV6地址", model.Ipv6Names[i], model.Ipv6s[i]))
 		}
 		ch <- Result{i + offset, s}
 	}

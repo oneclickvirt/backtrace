@@ -45,15 +45,29 @@ func trace(ch chan Result, i int) {
 		defer Logger.Sync()
 		Logger.Info(fmt.Sprintf("开始追踪 %s (%s)", model.Ipv4Names[i], model.Ipv4s[i]))
 	}
+	// 先尝试原始IP地址
 	hops, err := Trace(net.ParseIP(model.Ipv4s[i]))
+	if err != nil || len(hops) == 0 {
+		// 如果失败，尝试从IcmpTargets获取备选IP
+		if tryAltIPs := tryAlternativeIPs(model.Ipv4Names[i], "v4"); len(tryAltIPs) > 0 {
+			for _, altIP := range tryAltIPs {
+				if model.EnableLoger {
+					Logger.Info(fmt.Sprintf("尝试备选IP %s 追踪 %s", altIP, model.Ipv4Names[i]))
+				}
+				hops, err = Trace(net.ParseIP(altIP))
+				if err == nil && len(hops) > 0 {
+					break // 成功找到可用IP
+				}
+			}
+		}
+	}
+	// 如果所有尝试都失败
 	if err != nil {
-		s := fmt.Sprintf("%v %-15s %v", model.Ipv4Names[i], model.Ipv4s[i], err)
-
+		s := fmt.Sprintf("%v %-15s %v", model.Ipv4Names[i], model.Ipv4s[i], Red("检测不到回程路由节点的IP地址"))
 		if model.EnableLoger {
 			Logger.Error(fmt.Sprintf("追踪 %s (%s) 失败: %v", model.Ipv4Names[i], model.Ipv4s[i], err))
 		}
 		ch <- Result{i, s}
-		return
 	}
 	// 记录每个hop的信息
 	if model.EnableLoger {
@@ -151,10 +165,10 @@ func trace(ch chan Result, i int) {
 		}
 		ch <- Result{i, tempText}
 	} else {
-		s := fmt.Sprintf("%v %-15s %v", model.Ipv4Names[i], model.Ipv4s[i], Red("检测不到回程路由节点的IP地址"))
+		s := fmt.Sprintf("%v %-15s %v", model.Ipv4Names[i], model.Ipv4s[i], Red("检测不到回程路由节点的IPV4地址"))
 
 		if model.EnableLoger {
-			Logger.Warn(fmt.Sprintf("%s (%s) 检测不到回程路由节点的IP地址", model.Ipv4Names[i], model.Ipv4s[i]))
+			Logger.Warn(fmt.Sprintf("%s (%s) 检测不到回程路由节点的IPV4地址", model.Ipv4Names[i], model.Ipv4s[i]))
 		}
 		ch <- Result{i, s}
 	}
