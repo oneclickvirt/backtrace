@@ -92,6 +92,9 @@ func tryAlternativeIPs(targetName string, ipVersion string) []string {
 	if model.ParsedIcmpTargets == nil || (model.ParsedIcmpTargets != nil && len(model.ParsedIcmpTargets) == 0) {
 		return nil
 	}
+	if model.EnableLoger {
+		Logger.Info(fmt.Sprintf("使用备选地址: %s %s", targetName, ipVersion))
+	}
 	// 从目标名称中提取省份和ISP信息
 	var targetProvince, targetISP string
 	if strings.Contains(targetName, "北京") {
