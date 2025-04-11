@@ -70,7 +70,6 @@ func extractIpv6ASNsFromHops(hops []*Hop, enableLogger bool) []string {
 	return asns
 }
 
-
 // traceIPv6 IPv6追踪函数
 func traceIPv6(ch chan Result, i int, offset int) {
 	if model.EnableLoger {
@@ -108,15 +107,15 @@ func traceIPv6(ch chan Result, i int, offset int) {
 		}
 	}
 	asns = removeDuplicates(asns)
-	// 记录每个hop的信息
-	if model.EnableLoger {
-		for hopNum, hop := range hops {
-			for nodeNum, node := range hop.Nodes {
-				Logger.Info(fmt.Sprintf("追踪 %s (%s) - Hop %d, Node %d: %s (RTT: %v)",
-					model.Ipv6Names[i], model.Ipv6s[i], hopNum+1, nodeNum+1, node.IP.String(), node.RTT))
-			}
-		}
-	}
+	// // 记录每个hop的信息
+	// if model.EnableLoger {
+	// 	for hopNum, hop := range hops {
+	// 		for nodeNum, node := range hop.Nodes {
+	// 			Logger.Info(fmt.Sprintf("追踪 %s (%s) - Hop %d, Node %d: %s (RTT: %v)",
+	// 				model.Ipv6Names[i], model.Ipv6s[i], hopNum+1, nodeNum+1, node.IP.String(), node.RTT))
+	// 		}
+	// 	}
+	// }
 	// 处理不同线路
 	if len(asns) > 0 {
 		var tempText string
