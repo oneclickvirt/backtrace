@@ -53,6 +53,24 @@ func (t *Tracer) serveIPv6(conn *ipv6.PacketConn) error {
 	}
 }
 
+// extractIpv6ASNsFromHops 从跃点中提取ASN列表
+func extractIpv6ASNsFromHops(hops []*Hop, enableLogger bool) []string {
+	var asns []string
+	for _, h := range hops {
+		for _, n := range h.Nodes {
+			asn := ipv6Asn(n.IP.String())
+			if asn != "" {
+				asns = append(asns, asn)
+				if enableLogger {
+					Logger.Info(fmt.Sprintf("IP %s 对应的ASN: %s", n.IP.String(), asn))
+				}
+			}
+		}
+	}
+	return asns
+}
+
+
 // traceIPv6 IPv6追踪函数
 func traceIPv6(ch chan Result, i int, offset int) {
 	if model.EnableLoger {
@@ -62,21 +80,6 @@ func traceIPv6(ch chan Result, i int, offset int) {
 	}
 	// 先尝试原始IP地址
 	hops, err := Trace(net.ParseIP(model.Ipv6s[i]))
-	if err != nil || len(hops) == 0 {
-		// 如果失败，尝试从IcmpTargets获取备选IP
-		if tryAltIPs := tryAlternativeIPs(model.Ipv6Names[i], "v6"); len(tryAltIPs) > 0 {
-			for _, altIP := range tryAltIPs {
-				if model.EnableLoger {
-					Logger.Info(fmt.Sprintf("尝试备选IP %s 追踪 %s", altIP, model.Ipv6Names[i]))
-				}
-				hops, err = Trace(net.ParseIP(altIP))
-				if err == nil && len(hops) > 0 {
-					break // 成功找到可用IP
-				}
-			}
-		}
-	}
-	// 如果所有尝试都失败
 	if err != nil {
 		s := fmt.Sprintf("%v %-24s %v", model.Ipv6Names[i], model.Ipv6s[i], Red("检测不到回程路由节点的IP地址"))
 		if model.EnableLoger {
@@ -84,6 +87,27 @@ func traceIPv6(ch chan Result, i int, offset int) {
 		}
 		ch <- Result{i + offset, s}
 	}
+	asns := extractIpv6ASNsFromHops(hops, model.EnableLoger)
+	// 如果没有找到ASN，尝试备选IP
+	if len(asns) == 0 {
+		// 尝试从IcmpTargets获取备选IP
+		if tryAltIPs := tryAlternativeIPs(model.Ipv4Names[i], "v4"); len(tryAltIPs) > 0 {
+			for _, altIP := range tryAltIPs {
+				if model.EnableLoger {
+					Logger.Info(fmt.Sprintf("尝试备选IP %s 追踪 %s", altIP, model.Ipv4Names[i]))
+				}
+				hops, err = Trace(net.ParseIP(altIP))
+				if err == nil && len(hops) > 0 {
+					newAsns := extractIpv6ASNsFromHops(hops, model.EnableLoger)
+					asns = append(asns, newAsns...)
+					if len(newAsns) > 0 {
+						break // 成功找到可用IP
+					}
+				}
+			}
+		}
+	}
+	asns = removeDuplicates(asns)
 	// 记录每个hop的信息
 	if model.EnableLoger {
 		for hopNum, hop := range hops {
@@ -93,20 +117,8 @@ func traceIPv6(ch chan Result, i int, offset int) {
 			}
 		}
 	}
-	var asns []string
-	for _, h := range hops {
-		for _, n := range h.Nodes {
-			asn := ipv6Asn(n.IP.String())
-			if asn != "" {
-				asns = append(asns, asn)
-				if model.EnableLoger {
-					Logger.Info(fmt.Sprintf("IP %s 对应的ASN: %s", n.IP.String(), asn))
-				}
-			}
-		}
-	}
-	// 处理路由信息
-	if asns != nil && len(asns) > 0 {
+	// 处理不同线路
+	if len(asns) > 0 {
 		var tempText string
 		asns = removeDuplicates(asns)
 		tempText += fmt.Sprintf("%v ", model.Ipv6Names[i])

@@ -38,6 +38,23 @@ func newPacketV4(id uint16, dst net.IP, ttl int) []byte {
 	return append(buf, p...)
 }
 
+// extractIpv4ASNsFromHops 从跃点中提取ASN列表
+func extractIpv4ASNsFromHops(hops []*Hop, enableLogger bool) []string {
+	var asns []string
+	for _, h := range hops {
+		for _, n := range h.Nodes {
+			asn := ipv4Asn(n.IP.String())
+			if asn != "" {
+				asns = append(asns, asn)
+				if enableLogger {
+					Logger.Info(fmt.Sprintf("IP %s 对应的ASN: %s", n.IP.String(), asn))
+				}
+			}
+		}
+	}
+	return asns
+}
+
 // trace IPv4追踪函数
 func trace(ch chan Result, i int) {
 	if model.EnableLoger {
@@ -47,21 +64,6 @@ func trace(ch chan Result, i int) {
 	}
 	// 先尝试原始IP地址
 	hops, err := Trace(net.ParseIP(model.Ipv4s[i]))
-	if err != nil || len(hops) == 0 {
-		// 如果失败，尝试从IcmpTargets获取备选IP
-		if tryAltIPs := tryAlternativeIPs(model.Ipv4Names[i], "v4"); len(tryAltIPs) > 0 {
-			for _, altIP := range tryAltIPs {
-				if model.EnableLoger {
-					Logger.Info(fmt.Sprintf("尝试备选IP %s 追踪 %s", altIP, model.Ipv4Names[i]))
-				}
-				hops, err = Trace(net.ParseIP(altIP))
-				if err == nil && len(hops) > 0 {
-					break // 成功找到可用IP
-				}
-			}
-		}
-	}
-	// 如果所有尝试都失败
 	if err != nil {
 		s := fmt.Sprintf("%v %-15s %v", model.Ipv4Names[i], model.Ipv4s[i], Red("检测不到回程路由节点的IP地址"))
 		if model.EnableLoger {
@@ -69,6 +71,27 @@ func trace(ch chan Result, i int) {
 		}
 		ch <- Result{i, s}
 	}
+	asns := extractIpv4ASNsFromHops(hops, model.EnableLoger)
+	// 如果没有找到ASN，尝试备选IP
+	if len(asns) == 0 {
+		// 尝试从IcmpTargets获取备选IP
+		if tryAltIPs := tryAlternativeIPs(model.Ipv4Names[i], "v4"); len(tryAltIPs) > 0 {
+			for _, altIP := range tryAltIPs {
+				if model.EnableLoger {
+					Logger.Info(fmt.Sprintf("尝试备选IP %s 追踪 %s", altIP, model.Ipv4Names[i]))
+				}
+				hops, err = Trace(net.ParseIP(altIP))
+				if err == nil && len(hops) > 0 {
+					newAsns := extractIpv4ASNsFromHops(hops, model.EnableLoger)
+					asns = append(asns, newAsns...)
+					if len(newAsns) > 0 {
+						break // 成功找到可用IP
+					}
+				}
+			}
+		}
+	}
+	asns = removeDuplicates(asns)
 	// 记录每个hop的信息
 	if model.EnableLoger {
 		for hopNum, hop := range hops {
@@ -78,20 +101,8 @@ func trace(ch chan Result, i int) {
 			}
 		}
 	}
-	var asns []string
-	for _, h := range hops {
-		for _, n := range h.Nodes {
-			asn := ipv4Asn(n.IP.String())
-			if asn != "" {
-				asns = append(asns, asn)
-				if model.EnableLoger {
-					Logger.Info(fmt.Sprintf("IP %s 对应的ASN: %s", n.IP.String(), asn))
-				}
-			}
-		}
-	}
-	// 处理CN2不同路线的区别
-	if asns != nil && len(asns) > 0 {
+	// 处理不同线路
+	if len(asns) > 0 {
 		var tempText string
 		asns = removeDuplicates(asns)
 		tempText += fmt.Sprintf("%v ", model.Ipv4Names[i])

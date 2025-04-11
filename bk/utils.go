@@ -17,16 +17,17 @@ type Result struct {
 	s string
 }
 
-// removeDuplicates 切片元素去重
+// removeDuplicates 切片去重
 func removeDuplicates(elements []string) []string {
-	encountered := map[string]bool{}
-	result := []string{}
-	for v := range elements {
-		if encountered[elements[v]] {
-			// 存在过就不加入了
-		} else {
-			encountered[elements[v]] = true
-			result = append(result, elements[v])
+	if elements == nil {
+		return nil
+	}
+	seen := make(map[string]struct{})
+	var result []string
+	for _, v := range elements {
+		if _, ok := seen[v]; !ok {
+			seen[v] = struct{}{}
+			result = append(result, v)
 		}
 	}
 	return result
