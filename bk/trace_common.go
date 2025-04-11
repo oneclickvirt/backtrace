@@ -330,9 +330,9 @@ func (t *Tracer) serveReply(dst net.IP, res *packet) error {
 		Logger.Warn(fmt.Sprintf("找不到目标IP=%v的会话", dst))
 	}
 	for _, s := range a {
-		if model.EnableLoger {
-			Logger.Info(fmt.Sprintf("处理会话响应: 会话目标=%v", s.ip))
-		}
+		// if model.EnableLoger {
+		// 	Logger.Info(fmt.Sprintf("处理会话响应: 会话目标=%v", s.ip))
+		// }
 		s.handle(res)
 	}
 	return nil
@@ -419,9 +419,9 @@ func (s *Session) handle(res *packet) {
 		}
 		// 对于IPv6 松散匹配
 		if r.ID == res.ID || res.IP.To4() == nil {
-			if model.EnableLoger {
-				Logger.Info(fmt.Sprintf("找到匹配的探测包: ID=%d, TTL=%d", r.ID, r.TTL))
-			}
+			// if model.EnableLoger {
+			// 	Logger.Info(fmt.Sprintf("找到匹配的探测包: ID=%d, TTL=%d", r.ID, r.TTL))
+			// }
 			req = r
 			continue
 		}
@@ -431,9 +431,9 @@ func (s *Session) handle(res *packet) {
 	s.probes = s.probes[:n]
 	s.mu.Unlock()
 	if req == nil {
-		if model.EnableLoger {
-			Logger.Warn(fmt.Sprintf("未找到匹配的探测包: 响应ID=%d", res.ID))
-		}
+		// if model.EnableLoger {
+		// 	Logger.Warn(fmt.Sprintf("未找到匹配的探测包: 响应ID=%d", res.ID))
+		// }
 		return
 	}
 	hops := req.TTL - res.TTL + 1
@@ -450,9 +450,6 @@ func (s *Session) handle(res *packet) {
 		RTT:  res.Time.Sub(req.Time),
 		Hops: hops,
 	}:
-		if model.EnableLoger {
-			Logger.Info("响应已发送到通道")
-		}
 	default:
 		if model.EnableLoger {
 			Logger.Warn("发送响应到通道失败，通道已满")
