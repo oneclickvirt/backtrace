@@ -1,6 +1,7 @@
 package backtrace
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -8,7 +9,6 @@ import (
 
 	"github.com/imroc/req/v3"
 	"github.com/oneclickvirt/backtrace/model"
-
 	. "github.com/oneclickvirt/defaultset"
 )
 
@@ -16,6 +16,19 @@ type Result struct {
 	i int
 	s string
 }
+
+// IcmpTarget 定义ICMP目标的JSON结构
+type IcmpTarget struct {
+	Province  string `json:"province"`
+	ISP       string `json:"isp"`
+	IPVersion string `json:"ip_version"`
+	IPs       string `json:"ips"` // IP列表，以逗号分隔
+}
+
+// 用于缓存ICMP数据的全局变量
+var cachedIcmpData string
+var cachedIcmpDataFetchTime time.Time
+var parsedIcmpTargets []IcmpTarget
 
 func removeDuplicates(elements []string) []string {
 	encountered := map[string]bool{} // 用于存储已经遇到的元素
@@ -34,7 +47,7 @@ func removeDuplicates(elements []string) []string {
 // getData 获取目标地址的文本内容
 func getData(endpoint string) string {
 	client := req.C()
-	client.SetTimeout(10 * time.Second)
+	client.SetTimeout(6 * time.Second)
 	client.R().
 		SetRetryCount(2).
 		SetRetryBackoffInterval(1*time.Second, 5*time.Second).
@@ -66,15 +79,42 @@ func getData(endpoint string) string {
 	return ""
 }
 
-// tryAlternativeIPs 从IcmpTargets获取备选IP地址
-func tryAlternativeIPs(targetName string, ipVersion string) []string {
-	jsonData := getData(model.IcmpTargets)
-	if jsonData == "" {
+// parseIcmpTargets 解析ICMP目标数据
+func parseIcmpTargets(jsonData string) []IcmpTarget {
+	// 确保JSON数据格式正确，如果返回的是数组，需要添加[和]
+	if !strings.HasPrefix(jsonData, "[") {
+		jsonData = "[" + jsonData + "]"
+	}
+	// 如果JSON数据中的对象没有正确用逗号分隔，修复它
+	jsonData = strings.ReplaceAll(jsonData, "}{", "},{")
+	var targets []IcmpTarget
+	err := json.Unmarshal([]byte(jsonData), &targets)
+	if err != nil {
+		if model.EnableLoger {
+			Logger.Error(fmt.Sprintf("Failed to parse ICMP targets: %v", err))
+		}
 		return nil
 	}
-	// 简单解析JSON，提取省份和ISP信息
-	var targetProvince, targetISP string
+	return targets
+}
+
+// tryAlternativeIPs 从IcmpTargets获取备选IP地址
+func tryAlternativeIPs(targetName string, ipVersion string) []string {
+	if cachedIcmpData == "" || parsedIcmpTargets == nil || time.Since(cachedIcmpDataFetchTime) > time.Hour {
+		cachedIcmpData = getData(model.IcmpTargets)
+		cachedIcmpDataFetchTime = time.Now()
+		if cachedIcmpData != "" {
+			parsedIcmpTargets = parseIcmpTargets(cachedIcmpData)
+		}
+		if model.EnableLoger {
+			Logger.Info("Fetched new ICMP targets data")
+		}
+	}
+	if parsedIcmpTargets == nil || len(parsedIcmpTargets) == 0 {
+		return nil
+	}
 	// 从目标名称中提取省份和ISP信息
+	var targetProvince, targetISP string
 	if strings.Contains(targetName, "北京") {
 		targetProvince = "北京"
 	} else if strings.Contains(targetName, "上海") {
@@ -95,30 +135,28 @@ func tryAlternativeIPs(targetName string, ipVersion string) []string {
 	if targetProvince == "" || targetISP == "" {
 		return nil
 	}
-	// 解析JSON数据寻找匹配的记录
+	// 查找匹配条件的目标
 	var result []string
-	for _, line := range strings.Split(jsonData, "},{") {
-		if strings.Contains(line, "\"province\":\""+targetProvince+"省\"") &&
-			strings.Contains(line, "\"isp\":\""+targetISP+"\"") &&
-			strings.Contains(line, "\"ip_version\":\""+ipVersion+"\"") {
-			// 提取IP列表
-			ipsStart := strings.Index(line, "\"ips\":\"") + 7
-			if ipsStart > 7 {
-				ipsEnd := strings.Index(line[ipsStart:], "\"")
-				if ipsEnd > 0 {
-					ipsList := line[ipsStart : ipsStart+ipsEnd]
-					ips := strings.Split(ipsList, ",")
-					// 最多返回3个不重复的IP地址
-					count := 0
-					for _, ip := range ips {
-						if ip != "" {
-							result = append(result, ip)
-							count++
-							if count >= 3 {
-								break
-							}
+	for _, target := range parsedIcmpTargets {
+		// 检查省份是否匹配（可能带有"省"字或不带）
+		provinceMatch := (target.Province == targetProvince) || (target.Province == targetProvince+"省")
+		// 检查ISP和IP版本是否匹配
+		if provinceMatch && target.ISP == targetISP && target.IPVersion == ipVersion {
+			// 解析IP列表
+			if target.IPs != "" {
+				ips := strings.Split(target.IPs, ",")
+				// 最多返回3个IP地址
+				count := 0
+				for _, ip := range ips {
+					if ip != "" {
+						result = append(result, strings.TrimSpace(ip))
+						count++
+						if count >= 3 {
+							break
 						}
 					}
+				}
+				if len(result) > 0 {
 					return result
 				}
 			}
