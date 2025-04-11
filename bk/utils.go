@@ -17,18 +17,19 @@ type Result struct {
 	s string
 }
 
+// removeDuplicates 切片元素去重
 func removeDuplicates(elements []string) []string {
-	encountered := map[string]bool{} // 用于存储已经遇到的元素
-	result := []string{}             // 存储去重后的结果
-	for v := range elements {        // 遍历切片中的元素
-		if encountered[elements[v]] == true { // 如果该元素已经遇到过
+	encountered := map[string]bool{}
+	result := []string{}
+	for v := range elements {
+		if encountered[elements[v]] {
 			// 存在过就不加入了
 		} else {
-			encountered[elements[v]] = true      // 将该元素标记为已经遇到
-			result = append(result, elements[v]) // 将该元素加入到结果切片中
+			encountered[elements[v]] = true
+			result = append(result, elements[v])
 		}
 	}
-	return result // 返回去重后的结果切片
+	return result
 }
 
 // getData 获取目标地址的文本内容
