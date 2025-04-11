@@ -1,8 +1,18 @@
 package model
 
+import "time"
+
 const BackTraceVersion = "v0.0.5"
 
 var EnableLoger = false
+
+// IcmpTarget 定义ICMP目标的JSON结构
+type IcmpTarget struct {
+	Province  string `json:"province"`
+	ISP       string `json:"isp"`
+	IPVersion string `json:"ip_version"`
+	IPs       string `json:"ips"` // IP列表，以逗号分隔
+}
 
 var (
 	IcmpTargets = "https://raw.githubusercontent.com/spiritLHLS/icmp_targets/refs/heads/main/nodes.json"
@@ -62,4 +72,7 @@ var (
 		"AS9808":  "移动CMI    [普通线路]",
 		"AS58453": "移动CMI    [普通线路]",
 	}
+	CachedIcmpData          string
+	CachedIcmpDataFetchTime time.Time
+	ParsedIcmpTargets       []IcmpTarget
 )

@@ -8,6 +8,13 @@ import (
 )
 
 func BackTrace(enableIpv6 bool) {
+	if model.CachedIcmpData == "" || model.ParsedIcmpTargets == nil || time.Since(model.CachedIcmpDataFetchTime) > time.Hour {
+		model.CachedIcmpData = getData(model.IcmpTargets)
+		model.CachedIcmpDataFetchTime = time.Now()
+		if model.CachedIcmpData != "" {
+			model.ParsedIcmpTargets = parseIcmpTargets(model.CachedIcmpData)
+		}
+	}
 	if enableIpv6 {
 		ipv4Count := len(model.Ipv4s)
 		ipv6Count := len(model.Ipv6s)

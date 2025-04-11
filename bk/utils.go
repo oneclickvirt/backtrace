@@ -17,19 +17,6 @@ type Result struct {
 	s string
 }
 
-// IcmpTarget 定义ICMP目标的JSON结构
-type IcmpTarget struct {
-	Province  string `json:"province"`
-	ISP       string `json:"isp"`
-	IPVersion string `json:"ip_version"`
-	IPs       string `json:"ips"` // IP列表，以逗号分隔
-}
-
-// 用于缓存ICMP数据的全局变量
-var cachedIcmpData string
-var cachedIcmpDataFetchTime time.Time
-var parsedIcmpTargets []IcmpTarget
-
 func removeDuplicates(elements []string) []string {
 	encountered := map[string]bool{} // 用于存储已经遇到的元素
 	result := []string{}             // 存储去重后的结果
@@ -80,14 +67,14 @@ func getData(endpoint string) string {
 }
 
 // parseIcmpTargets 解析ICMP目标数据
-func parseIcmpTargets(jsonData string) []IcmpTarget {
+func parseIcmpTargets(jsonData string) []model.IcmpTarget {
 	// 确保JSON数据格式正确，如果返回的是数组，需要添加[和]
 	if !strings.HasPrefix(jsonData, "[") {
 		jsonData = "[" + jsonData + "]"
 	}
 	// 如果JSON数据中的对象没有正确用逗号分隔，修复它
 	jsonData = strings.ReplaceAll(jsonData, "}{", "},{")
-	var targets []IcmpTarget
+	var targets []model.IcmpTarget
 	err := json.Unmarshal([]byte(jsonData), &targets)
 	if err != nil {
 		if model.EnableLoger {
@@ -100,17 +87,7 @@ func parseIcmpTargets(jsonData string) []IcmpTarget {
 
 // tryAlternativeIPs 从IcmpTargets获取备选IP地址
 func tryAlternativeIPs(targetName string, ipVersion string) []string {
-	if cachedIcmpData == "" || parsedIcmpTargets == nil || time.Since(cachedIcmpDataFetchTime) > time.Hour {
-		cachedIcmpData = getData(model.IcmpTargets)
-		cachedIcmpDataFetchTime = time.Now()
-		if cachedIcmpData != "" {
-			parsedIcmpTargets = parseIcmpTargets(cachedIcmpData)
-		}
-		if model.EnableLoger {
-			Logger.Info("Fetched new ICMP targets data")
-		}
-	}
-	if parsedIcmpTargets == nil || len(parsedIcmpTargets) == 0 {
+	if model.ParsedIcmpTargets == nil || (model.ParsedIcmpTargets != nil && len(model.ParsedIcmpTargets) == 0) {
 		return nil
 	}
 	// 从目标名称中提取省份和ISP信息
@@ -137,7 +114,7 @@ func tryAlternativeIPs(targetName string, ipVersion string) []string {
 	}
 	// 查找匹配条件的目标
 	var result []string
-	for _, target := range parsedIcmpTargets {
+	for _, target := range model.ParsedIcmpTargets {
 		// 检查省份是否匹配（可能带有"省"字或不带）
 		provinceMatch := (target.Province == targetProvince) || (target.Province == targetProvince+"省")
 		// 检查ISP和IP版本是否匹配
