@@ -5,10 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"runtime"
 	"os"
+	"runtime"
 
 	backtrace "github.com/oneclickvirt/backtrace/bk"
+	"github.com/oneclickvirt/backtrace/model"
 	. "github.com/oneclickvirt/defaultset"
 )
 
@@ -30,7 +31,7 @@ func main() {
 	backtraceFlag.BoolVar(&help, "h", false, "Show help information")
 	backtraceFlag.BoolVar(&showVersion, "v", false, "Show version")
 	backtraceFlag.BoolVar(&showIpInfo, "s", true, "Disabe show ip info")
-	backtraceFlag.BoolVar(&backtrace.EnableLoger, "log", false, "Enable logging")
+	backtraceFlag.BoolVar(&model.EnableLoger, "log", false, "Enable logging")
 	backtraceFlag.BoolVar(&test, "test", false, "Test Mode")
 	backtraceFlag.Parse(os.Args[1:])
 	if help {
@@ -39,7 +40,7 @@ func main() {
 		return
 	}
 	if showVersion {
-		fmt.Println(backtrace.BackTraceVersion)
+		fmt.Println(model.BackTraceVersion)
 		return
 	}
 	if showIpInfo {

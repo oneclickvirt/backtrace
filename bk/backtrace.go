@@ -3,22 +3,24 @@ package backtrace
 import (
 	"fmt"
 	"time"
+
+	"github.com/oneclickvirt/backtrace/model"
 )
 
 func BackTrace(test bool) {
 	if test {
-		ipv4Count := len(ipv4s)
-		ipv6Count := len(ipv6s)
+		ipv4Count := len(model.Ipv4s)
+		ipv6Count := len(model.Ipv6s)
 		totalCount := ipv4Count + ipv6Count
 		var (
 			s = make([]string, totalCount)
 			c = make(chan Result)
 			t = time.After(time.Second * 10)
 		)
-		for i := range ipv4s {
+		for i := range model.Ipv4s {
 			go trace(c, i)
 		}
-		for i := range ipv6s {
+		for i := range model.Ipv6s {
 			go traceIPv6(c, i, ipv4Count)
 		}
 	loopIPv4v6:
@@ -41,13 +43,13 @@ func BackTrace(test bool) {
 			}
 		}
 	} else {
-		ipCount := len(ipv4s)
+		ipCount := len(model.Ipv4s)
 		var (
 			s = make([]string, ipCount)
 			c = make(chan Result)
 			t = time.After(time.Second * 10)
 		)
-		for i := range ipv4s {
+		for i := range model.Ipv4s {
 			go trace(c, i)
 		}
 	loopIPv4:

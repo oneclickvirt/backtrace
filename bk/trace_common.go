@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/oneclickvirt/backtrace/model"
 	. "github.com/oneclickvirt/defaultset"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
@@ -136,7 +137,7 @@ func (t *Tracer) init() {
 				t.ipv6conn = ipv6.NewPacketConn(conn)
 				err = t.ipv6conn.SetControlMessage(ipv6.FlagHopLimit|ipv6.FlagSrc|ipv6.FlagDst|ipv6.FlagInterface, true)
 				if err != nil {
-					if EnableLoger {
+					if model.EnableLoger {
 						InitLogger()
 						defer Logger.Sync()
 						Logger.Info("设置IPv6控制消息失败: " + err.Error())
@@ -183,19 +184,19 @@ func (t *Tracer) serveData(from net.IP, b []byte) error {
 		// IPv6处理
 		msg, err := icmp.ParseMessage(ProtocolIPv6ICMP, b)
 		if err != nil {
-			if EnableLoger {
+			if model.EnableLoger {
 				Logger.Warn("解析IPv6 ICMP消息失败: " + err.Error())
 			}
 			return err
 		}
 		// 记录所有收到的消息类型，帮助调试
-		if EnableLoger {
+		if model.EnableLoger {
 			Logger.Info(fmt.Sprintf("收到IPv6 ICMP消息: 类型=%v, 代码=%v", msg.Type, msg.Code))
 		}
 		// 处理不同类型的ICMP消息
 		if msg.Type == ipv6.ICMPTypeEchoReply {
 			if echo, ok := msg.Body.(*icmp.Echo); ok {
-				if EnableLoger {
+				if model.EnableLoger {
 					Logger.Info(fmt.Sprintf("处理IPv6回显应答: ID=%d, Seq=%d", echo.ID, echo.Seq))
 				}
 				return t.serveReply(from, &packet{from, uint16(echo.ID), 1, time.Now()})
@@ -203,7 +204,7 @@ func (t *Tracer) serveData(from net.IP, b []byte) error {
 		} else if msg.Type == ipv6.ICMPTypeTimeExceeded {
 			b = getReplyData(msg)
 			if len(b) < ipv6.HeaderLen {
-				if EnableLoger {
+				if model.EnableLoger {
 					Logger.Warn("IPv6时间超过消息太短")
 				}
 				return errMessageTooShort
@@ -212,12 +213,12 @@ func (t *Tracer) serveData(from net.IP, b []byte) error {
 			if b[0]>>4 == ipv6.Version {
 				ip, err := ipv6.ParseHeader(b)
 				if err != nil {
-					if EnableLoger {
+					if model.EnableLoger {
 						Logger.Warn("解析IPv6头部失败: " + err.Error())
 					}
 					return err
 				}
-				if EnableLoger {
+				if model.EnableLoger {
 					Logger.Info(fmt.Sprintf("处理IPv6时间超过: 目标=%v, FlowLabel=%d, HopLimit=%d",
 						ip.Dst, ip.FlowLabel, ip.HopLimit))
 				}
@@ -265,7 +266,7 @@ func (t *Tracer) sendRequest(dst net.IP, ttl int) (*packet, error) {
 			}
 			_, err := t.ipv6conn.WriteTo(b, cm, &net.IPAddr{IP: dst})
 			if err != nil {
-				if EnableLoger {
+				if model.EnableLoger {
 					InitLogger()
 					defer Logger.Sync()
 					Logger.Info("发送IPv6请求失败: " + err.Error())
@@ -308,7 +309,7 @@ func (t *Tracer) removeSession(s *Session) {
 }
 
 func (t *Tracer) serveReply(dst net.IP, res *packet) error {
-	if EnableLoger {
+	if model.EnableLoger {
 		Logger.Info(fmt.Sprintf("处理回复: 目标=%v, 来源=%v, ID=%d, TTL=%d",
 			dst, res.IP, res.ID, res.TTL))
 	}
@@ -317,7 +318,7 @@ func (t *Tracer) serveReply(dst net.IP, res *packet) error {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	// // 调试输出会话信息
-	// if EnableLoger && len(t.sess) > 0 {
+	// if model.EnableLoger && len(t.sess) > 0 {
 	// 	for ip, sessions := range t.sess {
 	// 		Logger.Info(fmt.Sprintf("会话信息: IP=%v, 会话数=%d",
 	// 			net.IP([]byte(ip)), len(sessions)))
@@ -325,11 +326,11 @@ func (t *Tracer) serveReply(dst net.IP, res *packet) error {
 	// }
 	// 查找对应的会话
 	a := t.sess[string(shortDst)]
-	if len(a) == 0 && EnableLoger {
+	if len(a) == 0 && model.EnableLoger {
 		Logger.Warn(fmt.Sprintf("找不到目标IP=%v的会话", dst))
 	}
 	for _, s := range a {
-		if EnableLoger {
+		if model.EnableLoger {
 			Logger.Info(fmt.Sprintf("处理会话响应: 会话目标=%v", s.ip))
 		}
 		s.handle(res)
@@ -395,13 +396,13 @@ func (s *Session) handle(res *packet) {
 	now := res.Time
 	n := 0
 	var req *packet
-	if EnableLoger {
+	if model.EnableLoger {
 		Logger.Info(fmt.Sprintf("处理会话响应: 会话目标=%v, 响应源=%v, ID=%d, TTL=%d",
 			s.ip, res.IP, res.ID, res.TTL))
 	}
 	s.mu.Lock()
 	// // 打印出所有待处理的探测包
-	// if EnableLoger && len(s.probes) > 0 {
+	// if model.EnableLoger && len(s.probes) > 0 {
 	// 	Logger.Info(fmt.Sprintf("当前会话有 %d 个待处理的探测包", len(s.probes)))
 	// 	for i, probe := range s.probes {
 	// 		Logger.Info(fmt.Sprintf("探测包 #%d: ID=%d, TTL=%d, 时间=%v",
@@ -411,14 +412,14 @@ func (s *Session) handle(res *packet) {
 	// 查找匹配的请求包
 	for _, r := range s.probes {
 		if now.Sub(r.Time) > s.t.Timeout {
-			// if EnableLoger {
+			// if model.EnableLoger {
 			// 	Logger.Info(fmt.Sprintf("探测包超时: ID=%d, TTL=%d", r.ID, r.TTL))
 			// }
 			continue
 		}
 		// 对于IPv6 松散匹配
 		if r.ID == res.ID || res.IP.To4() == nil {
-			if EnableLoger {
+			if model.EnableLoger {
 				Logger.Info(fmt.Sprintf("找到匹配的探测包: ID=%d, TTL=%d", r.ID, r.TTL))
 			}
 			req = r
@@ -430,7 +431,7 @@ func (s *Session) handle(res *packet) {
 	s.probes = s.probes[:n]
 	s.mu.Unlock()
 	if req == nil {
-		if EnableLoger {
+		if model.EnableLoger {
 			Logger.Warn(fmt.Sprintf("未找到匹配的探测包: 响应ID=%d", res.ID))
 		}
 		return
@@ -439,7 +440,7 @@ func (s *Session) handle(res *packet) {
 	if hops < 1 {
 		hops = 1
 	}
-	if EnableLoger {
+	if model.EnableLoger {
 		Logger.Info(fmt.Sprintf("创建响应: IP=%v, RTT=%v, Hops=%d",
 			res.IP, res.Time.Sub(req.Time), hops))
 	}
@@ -449,11 +450,11 @@ func (s *Session) handle(res *packet) {
 		RTT:  res.Time.Sub(req.Time),
 		Hops: hops,
 	}:
-		if EnableLoger {
+		if model.EnableLoger {
 			Logger.Info("响应已发送到通道")
 		}
 	default:
-		if EnableLoger {
+		if model.EnableLoger {
 			Logger.Warn("发送响应到通道失败，通道已满")
 		}
 	}

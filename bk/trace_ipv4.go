@@ -5,6 +5,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/oneclickvirt/backtrace/model"
 	. "github.com/oneclickvirt/defaultset"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
@@ -39,37 +40,37 @@ func newPacketV4(id uint16, dst net.IP, ttl int) []byte {
 
 // trace IPv4追踪函数
 func trace(ch chan Result, i int) {
-	if EnableLoger {
+	if model.EnableLoger {
 		InitLogger()
 		defer Logger.Sync()
-		Logger.Info(fmt.Sprintf("开始追踪 %s (%s)", ipv4Names[i], ipv4s[i]))
+		Logger.Info(fmt.Sprintf("开始追踪 %s (%s)", model.Ipv4Names[i], model.Ipv4s[i]))
 	}
-	hops, err := Trace(net.ParseIP(ipv4s[i]))
+	hops, err := Trace(net.ParseIP(model.Ipv4s[i]))
 	if err != nil {
-		s := fmt.Sprintf("%v %-15s %v", ipv4Names[i], ipv4s[i], err)
+		s := fmt.Sprintf("%v %-15s %v", model.Ipv4Names[i], model.Ipv4s[i], err)
 
-		if EnableLoger {
-			Logger.Error(fmt.Sprintf("追踪 %s (%s) 失败: %v", ipv4Names[i], ipv4s[i], err))
+		if model.EnableLoger {
+			Logger.Error(fmt.Sprintf("追踪 %s (%s) 失败: %v", model.Ipv4Names[i], model.Ipv4s[i], err))
 		}
 		ch <- Result{i, s}
 		return
 	}
 	// 记录每个hop的信息
-	if EnableLoger {
+	if model.EnableLoger {
 		for hopNum, hop := range hops {
 			for nodeNum, node := range hop.Nodes {
 				Logger.Info(fmt.Sprintf("追踪 %s (%s) - Hop %d, Node %d: %s (RTT: %v)",
-					ipv4Names[i], ipv4s[i], hopNum+1, nodeNum+1, node.IP.String(), node.RTT))
+					model.Ipv4Names[i], model.Ipv4s[i], hopNum+1, nodeNum+1, node.IP.String(), node.RTT))
 			}
 		}
 	}
 	var asns []string
 	for _, h := range hops {
 		for _, n := range h.Nodes {
-			asn := ipAsn(n.IP.String())
+			asn := ipv4Asn(n.IP.String())
 			if asn != "" {
 				asns = append(asns, asn)
-				if EnableLoger {
+				if model.EnableLoger {
 					Logger.Info(fmt.Sprintf("IP %s 对应的ASN: %s", n.IP.String(), asn))
 				}
 			}
@@ -79,7 +80,7 @@ func trace(ch chan Result, i int) {
 	if asns != nil && len(asns) > 0 {
 		var tempText string
 		asns = removeDuplicates(asns)
-		tempText += fmt.Sprintf("%v ", ipv4Names[i])
+		tempText += fmt.Sprintf("%v ", model.Ipv4Names[i])
 		hasAS4134 := false
 		hasAS4809 := false
 		for _, asn := range asns {
@@ -94,19 +95,19 @@ func trace(ch chan Result, i int) {
 		if hasAS4134 && hasAS4809 {
 			// 同时包含 AS4134 和 AS4809 属于 CN2GT
 			asns = append([]string{"AS4809b"}, asns...)
-			if EnableLoger {
-				Logger.Info(fmt.Sprintf("%s (%s) 线路识别为: CN2GT", ipv4Names[i], ipv4s[i]))
+			if model.EnableLoger {
+				Logger.Info(fmt.Sprintf("%s (%s) 线路识别为: CN2GT", model.Ipv4Names[i], model.Ipv4s[i]))
 			}
 		} else if hasAS4809 {
 			// 仅包含 AS4809 属于 CN2GIA
 			asns = append([]string{"AS4809a"}, asns...)
-			if EnableLoger {
-				Logger.Info(fmt.Sprintf("%s (%s) 线路识别为: CN2GIA", ipv4Names[i], ipv4s[i]))
+			if model.EnableLoger {
+				Logger.Info(fmt.Sprintf("%s (%s) 线路识别为: CN2GIA", model.Ipv4Names[i], model.Ipv4s[i]))
 			}
 		}
-		tempText += fmt.Sprintf("%-24s ", ipv4s[i])
+		tempText += fmt.Sprintf("%-24s ", model.Ipv4s[i])
 		for _, asn := range asns {
-			asnDescription := m[asn]
+			asnDescription := model.M[asn]
 			switch asn {
 			case "":
 				continue
@@ -138,22 +139,22 @@ func trace(ch chan Result, i int) {
 				}
 			}
 		}
-		if tempText == (fmt.Sprintf("%v ", ipv4Names[i]) + fmt.Sprintf("%-15s ", ipv4s[i])) {
+		if tempText == (fmt.Sprintf("%v ", model.Ipv4Names[i]) + fmt.Sprintf("%-15s ", model.Ipv4s[i])) {
 			tempText += fmt.Sprintf("%v", Red("检测不到已知线路的ASN"))
 
-			if EnableLoger {
-				Logger.Warn(fmt.Sprintf("%s (%s) 检测不到已知线路的ASN", ipv4Names[i], ipv4s[i]))
+			if model.EnableLoger {
+				Logger.Warn(fmt.Sprintf("%s (%s) 检测不到已知线路的ASN", model.Ipv4Names[i], model.Ipv4s[i]))
 			}
 		}
-		if EnableLoger {
-			Logger.Info(fmt.Sprintf("%s (%s) 追踪完成，结果: %s", ipv4Names[i], ipv4s[i], tempText))
+		if model.EnableLoger {
+			Logger.Info(fmt.Sprintf("%s (%s) 追踪完成，结果: %s", model.Ipv4Names[i], model.Ipv4s[i], tempText))
 		}
 		ch <- Result{i, tempText}
 	} else {
-		s := fmt.Sprintf("%v %-15s %v", ipv4Names[i], ipv4s[i], Red("检测不到回程路由节点的IP地址"))
+		s := fmt.Sprintf("%v %-15s %v", model.Ipv4Names[i], model.Ipv4s[i], Red("检测不到回程路由节点的IP地址"))
 
-		if EnableLoger {
-			Logger.Warn(fmt.Sprintf("%s (%s) 检测不到回程路由节点的IP地址", ipv4Names[i], ipv4s[i]))
+		if model.EnableLoger {
+			Logger.Warn(fmt.Sprintf("%s (%s) 检测不到回程路由节点的IP地址", model.Ipv4Names[i], model.Ipv4s[i]))
 		}
 		ch <- Result{i, s}
 	}
