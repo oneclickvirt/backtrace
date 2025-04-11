@@ -10,18 +10,16 @@
 
 ## 功能
 
-- [x] 检测回程显示IPV4地址时的线路(使用1500字节的包)，不显示IP地址时显示ASN检测不到
+- [x] 检测回程显示IPV4/IPV6地址时的线路(使用1500字节的包)，不显示IP地址时显示ASN检测不到
 - [x] 支持对```9929```、```4837```和```163```线路的判断
 - [x] 支持对```CTGNET```、```CN2GIA```和```CN2GT```线路的判断
 - [x] 支持对```CMIN2```和```CMI```线路的判断
 - [x] 支持对整个回程路由进行线路分析，一个目标IP可能会分析出多种线路
 - [x] 增加对全平台的编译支持，原版[backtrace](https://github.com/zhanghanyun/backtrace)仅支持linux平台的amd64和arm64架构
+- [x] 兼容额外的ICMP地址获取，若当前目标IP无法查询路由尝试额外的IP地址
 
 ## TODO
 
-- [ ] 增加IPV6路由能力检测
-- [ ] 兼容额外的ICMP地址获取，若当前目标IP无法查询路由尝试额外的IP地址
-- [ ] 重复检测同一段路由，避免结果不可复现
 - [ ] 自动检测汇聚层，裁剪结果不输出汇聚层后的线路(区分境内外段)
 - [ ] 添加对主流ISP的POP点检测，区分国际互联能力
 
@@ -57,10 +55,13 @@ backtrace
 
 ```
 Usage: backtrace [options]
-  -log    Enable logging
-  -h      Show help information
-  -s      Disabe show ip info (default true)
-  -v      Show version
+  -h    Show help information
+  -ipv6
+        Enable ipv6 testing
+  -log
+        Enable logging
+  -s    Disabe show ip info (default true)
+  -v    Show version
 ```
 
 ## 卸载
