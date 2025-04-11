@@ -26,13 +26,13 @@ func main() {
 		http.Get("https://hits.spiritlhl.net/backtrace.svg?action=hit&title=Hits&title_bg=%23555555&count_bg=%230eecf8&edge_flat=false")
 	}()
 	fmt.Println(Green("项目地址:"), Yellow("https://github.com/oneclickvirt/backtrace"))
-	var showVersion, showIpInfo, help, test bool
+	var showVersion, showIpInfo, help, ipv6 bool
 	backtraceFlag := flag.NewFlagSet("backtrace", flag.ContinueOnError)
 	backtraceFlag.BoolVar(&help, "h", false, "Show help information")
 	backtraceFlag.BoolVar(&showVersion, "v", false, "Show version")
 	backtraceFlag.BoolVar(&showIpInfo, "s", true, "Disabe show ip info")
 	backtraceFlag.BoolVar(&model.EnableLoger, "log", false, "Enable logging")
-	backtraceFlag.BoolVar(&test, "test", false, "Test Mode")
+	backtraceFlag.BoolVar(&ipv6, "ipv6", false, "Enable ipv6 testing")
 	backtraceFlag.Parse(os.Args[1:])
 	if help {
 		fmt.Printf("Usage: %s [options]\n", os.Args[0])
@@ -58,7 +58,7 @@ func main() {
 			}
 		}
 	}
-	backtrace.BackTrace(test)
+	backtrace.BackTrace(ipv6)
 	fmt.Println(Yellow("准确线路自行查看详细路由，本测试结果仅作参考"))
 	fmt.Println(Yellow("同一目标地址多个线路时，可能检测已越过汇聚层，除了第一个线路外，后续信息可能无效"))
 	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {

@@ -155,7 +155,6 @@ func traceIPv6(ch chan Result, i int, offset int) {
 		}
 		if tempText == (fmt.Sprintf("%v ", model.Ipv6Names[i]) + fmt.Sprintf("%-40s ", model.Ipv6s[i])) {
 			tempText += fmt.Sprintf("%v", Red("检测不到已知线路的ASN"))
-
 			if model.EnableLoger {
 				Logger.Warn(fmt.Sprintf("%s (%s) 检测不到已知线路的ASN", model.Ipv6Names[i], model.Ipv6s[i]))
 			}

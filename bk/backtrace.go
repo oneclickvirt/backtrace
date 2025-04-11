@@ -7,8 +7,8 @@ import (
 	"github.com/oneclickvirt/backtrace/model"
 )
 
-func BackTrace(test bool) {
-	if test {
+func BackTrace(enableIpv6 bool) {
+	if enableIpv6 {
 		ipv4Count := len(model.Ipv4s)
 		ipv6Count := len(model.Ipv6s)
 		totalCount := ipv4Count + ipv6Count
