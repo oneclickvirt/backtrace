@@ -73,7 +73,9 @@ func parseIcmpTargets(jsonData string) []model.IcmpTarget {
 	var targets []model.IcmpTarget
 	err := json.Unmarshal([]byte(jsonData), &targets)
 	if err != nil {
-		logError(fmt.Sprintf("解析ICMP目标失败: %s", err.Error()))
+		if model.EnableLoger {
+			Logger.Info(fmt.Sprintf("解析ICMP目标失败: %s", err.Error()))
+		}
 		return nil
 	}
 	return targets

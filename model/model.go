@@ -15,7 +15,7 @@ type IcmpTarget struct {
 }
 
 var (
-	IcmpTargets = "https://raw.githubusercontent.com/spiritLHLS/icmp_targets/refs/heads/main/nodes.json"
+	IcmpTargets = "https://raw.githubusercontent.com/spiritLHLS/icmp_targets/main/nodes.json"
 	CdnList     = []string{
 		"http://cdn1.spiritlhl.net/",
 		"http://cdn2.spiritlhl.net/",
