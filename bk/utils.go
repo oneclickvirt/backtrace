@@ -70,18 +70,10 @@ func getData(endpoint string) string {
 
 // parseIcmpTargets 解析ICMP目标数据
 func parseIcmpTargets(jsonData string) []model.IcmpTarget {
-	// 确保JSON数据格式正确，如果返回的是数组，需要添加[和]
-	if !strings.HasPrefix(jsonData, "[") {
-		jsonData = "[" + jsonData + "]"
-	}
-	// 如果JSON数据中的对象没有正确用逗号分隔，修复它
-	jsonData = strings.ReplaceAll(jsonData, "}{", "},{")
 	var targets []model.IcmpTarget
 	err := json.Unmarshal([]byte(jsonData), &targets)
 	if err != nil {
-		if model.EnableLoger {
-			Logger.Error(fmt.Sprintf("Failed to parse ICMP targets: %v", err))
-		}
+		logError(fmt.Sprintf("解析ICMP目标失败: %s", err.Error()))
 		return nil
 	}
 	return targets
