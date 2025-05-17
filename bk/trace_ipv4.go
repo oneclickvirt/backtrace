@@ -70,6 +70,7 @@ func trace(ch chan Result, i int) {
 			Logger.Error(fmt.Sprintf("追踪 %s (%s) 失败: %v", model.Ipv4Names[i], model.Ipv4s[i], err))
 		}
 		ch <- Result{i, s}
+		return
 	}
 	asns := extractIpv4ASNsFromHops(hops, model.EnableLoger)
 	// 如果没有找到ASN，尝试备选IP
