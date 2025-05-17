@@ -90,10 +90,10 @@ func traceIPv6(ch chan Result, i int, offset int) {
 	// 如果没有找到ASN，尝试备选IP
 	if len(asns) == 0 {
 		// 尝试从IcmpTargets获取备选IP
-		if tryAltIPs := tryAlternativeIPs(model.Ipv4Names[i], "v4"); len(tryAltIPs) > 0 {
+		if tryAltIPs := tryAlternativeIPs(model.Ipv6Names[i], "v6"); len(tryAltIPs) > 0 {
 			for _, altIP := range tryAltIPs {
 				if model.EnableLoger {
-					Logger.Info(fmt.Sprintf("尝试备选IP %s 追踪 %s", altIP, model.Ipv4Names[i]))
+					Logger.Info(fmt.Sprintf("尝试备选IP %s 追踪 %s", altIP, model.Ipv6Names[i]))
 				}
 				hops, err = Trace(net.ParseIP(altIP))
 				if err == nil && len(hops) > 0 {
