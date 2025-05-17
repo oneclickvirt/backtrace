@@ -85,6 +85,7 @@ func traceIPv6(ch chan Result, i int, offset int) {
 			Logger.Warn(fmt.Sprintf("%s (%s) 检测不到回程路由节点的IP地址", model.Ipv6Names[i], model.Ipv6s[i]))
 		}
 		ch <- Result{i + offset, s}
+		return
 	}
 	asns := extractIpv6ASNsFromHops(hops, model.EnableLoger)
 	// 如果没有找到ASN，尝试备选IP
