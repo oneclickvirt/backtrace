@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"time"
 
 	backtrace "github.com/oneclickvirt/backtrace/bk"
 	"github.com/oneclickvirt/backtrace/model"
+	"github.com/oneclickvirt/backtrace/utils"
 	. "github.com/oneclickvirt/defaultset"
 )
 
@@ -25,7 +27,7 @@ func main() {
 	go func() {
 		http.Get("https://hits.spiritlhl.net/backtrace.svg?action=hit&title=Hits&title_bg=%23555555&count_bg=%230eecf8&edge_flat=false")
 	}()
-	fmt.Println(Green("项目地址:"), Yellow("https://github.com/oneclickvirt/backtrace"))
+	fmt.Println(Green("Repo:"), Yellow("https://github.com/oneclickvirt/backtrace"))
 	var showVersion, showIpInfo, help, ipv6 bool
 	backtraceFlag := flag.NewFlagSet("backtrace", flag.ContinueOnError)
 	backtraceFlag.BoolVar(&help, "h", false, "Show help information")
@@ -58,7 +60,16 @@ func main() {
 			}
 		}
 	}
-	backtrace.BackTrace(ipv6)
+	preCheck := utils.CheckPublicAccess(3 * time.Second)
+	if preCheck.Connected && preCheck.StackType == "DualStack" {
+		backtrace.BackTrace(ipv6)
+	} else if preCheck.Connected && preCheck.StackType == "IPv4" {
+		backtrace.BackTrace(false)
+	} else if preCheck.Connected && preCheck.StackType == "IPv6" {
+		backtrace.BackTrace(true)
+	} else {
+		fmt.Println(Red("PreCheck IP Type Failed"))
+	}
 	fmt.Println(Yellow("准确线路自行查看详细路由，本测试结果仅作参考"))
 	fmt.Println(Yellow("同一目标地址多个线路时，可能检测已越过汇聚层，除了第一个线路外，后续信息可能无效"))
 	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
