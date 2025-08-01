@@ -3,6 +3,7 @@ module github.com/oneclickvirt/backtrace
 go 1.24.5
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/imroc/req/v3 v3.54.0
 	github.com/oneclickvirt/defaultset v0.0.0-20240624051018-30a50859e1b5
 	golang.org/x/net v0.41.0

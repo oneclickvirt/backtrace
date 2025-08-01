@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/imroc/req/v3"
+	"github.com/google/uuid"
 )
 
 type ASCard struct {
@@ -101,7 +102,7 @@ func getSVGPath(client *req.Client, ip string) (string, error) {
 }
 
 func downloadSVG(client *req.Client, svgPath string) (string, error) {
-	uuid := "fixeduuid123456"
+	uuid := uuid.NewString()
 	url := fmt.Sprintf("https://bgp.tools%s?%s&loggedin", svgPath, uuid)
 	resp, err := client.R().Get(url)
 	if err != nil {
