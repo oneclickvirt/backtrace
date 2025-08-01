@@ -76,3 +76,82 @@ var (
 	CachedIcmpDataFetchTime time.Time
 	ParsedIcmpTargets       []IcmpTarget
 )
+
+var Tier1Global = map[string]string{
+	"174":   "Cogent",
+	"1299":  "Arelion",
+	"3356":  "Lumen",
+	"3257":  "GTT",
+	"7018":  "AT&T",
+	"701":   "Verizon",
+	"2914":  "NTT",
+	"6453":  "Tata",
+	"3320":  "DTAG",
+	"5511":  "Orange",
+	"3491":  "PCCW",
+	"6461":  "Zayo",
+	"6830":  "Liberty",
+	"6762":  "Sparkle",
+	"12956": "Telxius",
+	"702":   "Verizon",
+}
+
+var Tier1Regional = map[string]string{
+	"4134":  "ChinaNet",
+	"4837":  "China Unicom",
+	"9808":  "China Mobile",
+	"4766":  "Korea Telecom",
+	"2516":  "KDDI",
+	"7713":  "Telkomnet",
+	"9121":  "Etisalat",
+	"7473":  "SingTel",
+	"4637":  "Telstra",
+	"5400":  "British Telecom",
+	"2497":  "IIJ",
+	"3462":  "Chunghwa Telecom",
+	"3463":  "TWNIC",
+	"12389": "SoftBank",
+	"3303":  "MTS",
+	"45609": "Reliance Jio",
+}
+
+var Tier2 = map[string]string{
+	"6939":  "HurricaneElectric",
+	"20485": "Transtelecom",
+	"1273":  "Vodafone",
+	"1239":  "Sprint",
+	"6453":  "Tata",
+	"6762":  "Sparkle",
+	"9002":  "RETN",
+	"7922":  "Comcast",
+	"23754": "Rostelecom",
+	"3320":  "DTAG",
+}
+
+var ContentProviders = map[string]string{
+	"15169": "Google",
+	"32934": "Facebook",
+	"54113": "Fastly",
+	"20940": "Akamai",
+	"13335": "Cloudflare",
+	"14618": "Amazon AWS",
+	"55102": "Netflix CDN",
+	"4685":  "CacheFly",
+	"16509": "Amazon",
+	"36040": "Amazon CloudFront",
+	"36459": "EdgeCast",
+	"24940": "CDNetworks",
+}
+
+var IXPS = map[string]string{
+	"5539":   "IX.br",
+	"25291":  "HKIX",
+	"1200":   "AMS-IX",
+	"6695":   "DE-CIX",
+	"58558":  "LINX",
+	"395848": "France-IX",
+	"4713":   "JPNAP",
+	"4635":   "SIX",
+	"2906":   "MSK-IX",
+	"1273":   "NIX.CZ",
+}

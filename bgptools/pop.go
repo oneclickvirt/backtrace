@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/imroc/req/v3"
+	"github.com/oneclickvirt/backtrace/model"
 )
 
 type ASCard struct {
@@ -39,82 +40,32 @@ type PoPResult struct {
 	Result    string
 }
 
-var tier1Global = map[string]string{
-	"174":   "Cogent",
-	"1299":  "Arelion",
-	"3356":  "Lumen",
-	"3257":  "GTT",
-	"7018":  "AT&T",
-	"701":   "Verizon",
-	"2914":  "NTT",
-	"6453":  "Tata",
-	"3320":  "DTAG",
-	"5511":  "Orange",
-	"3491":  "PCCW",
-	"6461":  "Zayo",
-	"6830":  "Liberty",
-	"6762":  "Sparkle",
-	"12956": "Telxius",
-}
-
-var tier1Regional = map[string]string{
-	"4134": "ChinaNet",
-	"4837": "China Unicom",
-	"9808": "China Mobile",
-	"4766": "Korea Telecom",
-	"2516": "KDDI",
-	"7713": "Telkomnet",
-	"9121": "Etisalat",
-}
-
-var tier2 = map[string]string{
-	"6939":  "Hurricane Electric",
-	"20485": "Transtelecom",
-	"1273":  "Vodafone",
-	"1239":  "Sprint",
-	"6762":  "Sparkle",
-	"6453":  "Tata",
-}
-
-var contentProviders = map[string]string{
-	"15169": "Google",
-	"32934": "Facebook",
-	"54113": "Fastly",
-	"20940": "Akamai",
-	"13335": "Cloudflare",
-}
-
-var ixps = map[string]string{
-	"5539":  "IX.br",
-	"25291": "HKIX",
-	"1200":  "AMS-IX",
-	"6695":  "DE-CIX",
-}
-
 func getISPAbbr(asn, name string) string {
-	if abbr, ok := tier1Global[asn]; ok {
+	if abbr, ok := model.Tier1Global[asn]; ok {
 		return abbr
 	}
-	if idx := strings.Index(name, " "); idx != -1 {
+	if idx := strings.Index(name, " "); idx != -1 && idx > 18 {
 		return name[:idx]
 	}
 	return name
 }
 
-func getISPType(asn string, tier1 bool) string {
+func getISPType(asn string, tier1 bool, direct bool) string {
 	switch {
-	case tier1 && tier1Global[asn] != "":
+	case tier1 && model.Tier1Global[asn] != "":
 		return "Tier1 Global"
-	case tier1Regional[asn] != "":
+	case model.Tier1Regional[asn] != "":
 		return "Tier1 Regional"
-	case tier2[asn] != "":
+	case model.Tier2[asn] != "":
 		return "Tier2"
-	case contentProviders[asn] != "":
+	case model.ContentProviders[asn] != "":
 		return "CDN Provider"
-	case ixps[asn] != "":
+	case model.IXPS[asn] != "":
 		return "IXP"
-	default:
+	case direct:
 		return "Direct"
+	default:
+		return "Indirect"
 	}
 }
 
@@ -236,7 +187,7 @@ func findUpstreams(targetASN string, nodes []ASCard, edges []Arrow) []Upstream {
 			continue
 		}
 		isTier1 := (n.Fill == "white" && n.Stroke == "#005ea5")
-		upstreamType := getISPType(n.ASN, isTier1)
+		upstreamType := getISPType(n.ASN, isTier1, true)
 		upstreams = append(upstreams, Upstream{
 			ASN:    n.ASN,
 			Name:   n.Name,
@@ -244,6 +195,55 @@ func findUpstreams(targetASN string, nodes []ASCard, edges []Arrow) []Upstream {
 			Tier1:  isTier1,
 			Type:   upstreamType,
 		})
+	}
+	if len(upstreams) == 1 {
+		currentASN := upstreams[0].ASN
+		for {
+			nextUpstreams := map[string]bool{}
+			for _, e := range edges {
+				if e.From == currentASN {
+					nextUpstreams[e.To] = true
+				}
+			}
+			if len(nextUpstreams) != 1 {
+				break
+			}
+			var nextASN string
+			for asn := range nextUpstreams {
+				nextASN = asn
+				break
+			}
+			found := false
+			for _, existing := range upstreams {
+				if existing.ASN == nextASN {
+					found = true
+					break
+				}
+			}
+			if found {
+				break
+			}
+			var nextNode *ASCard
+			for _, n := range nodes {
+				if n.ASN == nextASN {
+					nextNode = &n
+					break
+				}
+			}
+			if nextNode == nil {
+				break
+			}
+			isTier1 := (nextNode.Fill == "white" && nextNode.Stroke == "#005ea5")
+			upstreamType := getISPType(nextNode.ASN, isTier1, false)
+			upstreams = append(upstreams, Upstream{
+				ASN:    nextNode.ASN,
+				Name:   nextNode.Name,
+				Direct: false,
+				Tier1:  isTier1,
+				Type:   upstreamType,
+			})
+			currentASN = nextASN
+		}
 	}
 	return upstreams
 }
@@ -270,33 +270,39 @@ func GetPoPInfo(ip string) (*PoPResult, error) {
 		return nil, fmt.Errorf("无法识别目标 ASN")
 	}
 	upstreams := findUpstreams(targetASN, nodes, edges)
-	if len(upstreams) > 5 {
-		upstreams = upstreams[:5]
-	}
-	colWidth := 16
+	colWidth := 18
 	center := func(s string) string {
 		runeLen := len([]rune(s))
 		if runeLen >= colWidth {
-			return s[:colWidth]
+			return string([]rune(s)[:colWidth])
 		}
 		padding := colWidth - runeLen
 		left := padding / 2
 		right := padding - left
 		return strings.Repeat(" ", left) + s + strings.Repeat(" ", right)
 	}
-	var line1, line2, line3 []string
-	for _, u := range upstreams {
-		abbr := getISPAbbr(u.ASN, u.Name)
-		line1 = append(line1, center("AS"+u.ASN))
-		line2 = append(line2, center(abbr))
-		line3 = append(line3, center(u.Type))
-	}
 	var result strings.Builder
-	result.WriteString(strings.Join(line1, ""))
-	result.WriteString("\n")
-	result.WriteString(strings.Join(line2, ""))
-	result.WriteString("\n")
-	result.WriteString(strings.Join(line3, ""))
+	perLine := 5
+	for i := 0; i < len(upstreams); i += perLine {
+		end := i + perLine
+		if end > len(upstreams) {
+			end = len(upstreams)
+		}
+		batch := upstreams[i:end]
+		var line1, line2, line3 []string
+		for _, u := range batch {
+			abbr := getISPAbbr(u.ASN, u.Name)
+			line1 = append(line1, center("AS"+u.ASN))
+			line2 = append(line2, center(abbr))
+			line3 = append(line3, center(u.Type))
+		}
+		result.WriteString(strings.Join(line1, ""))
+		result.WriteString("\n")
+		result.WriteString(strings.Join(line2, ""))
+		result.WriteString("\n")
+		result.WriteString(strings.Join(line3, ""))
+		result.WriteString("\n")
+	}
 	return &PoPResult{
 		TargetASN: targetASN,
 		Upstreams: upstreams,

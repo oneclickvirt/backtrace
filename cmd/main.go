@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/oneclickvirt/backtrace/bgptools"
 	backtrace "github.com/oneclickvirt/backtrace/bk"
 	"github.com/oneclickvirt/backtrace/model"
 	"github.com/oneclickvirt/backtrace/utils"
@@ -45,12 +46,12 @@ func main() {
 		fmt.Println(model.BackTraceVersion)
 		return
 	}
+	info := IpInfo{}
 	if showIpInfo {
 		rsp, err := http.Get("http://ipinfo.io")
 		if err != nil {
 			fmt.Errorf("Get ip info err %v \n", err.Error())
 		} else {
-			info := IpInfo{}
 			err = json.NewDecoder(rsp.Body).Decode(&info)
 			if err != nil {
 				fmt.Errorf("json decode err %v \n", err.Error())
@@ -61,6 +62,15 @@ func main() {
 		}
 	}
 	preCheck := utils.CheckPublicAccess(3 * time.Second)
+	if preCheck.Connected && info.Ip != "" {
+		result, err := bgptools.GetPoPInfo(info.Ip)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+		fmt.Println("上游信息:")
+		fmt.Print(result.Result)
+	}
 	if preCheck.Connected && preCheck.StackType == "DualStack" {
 		backtrace.BackTrace(ipv6)
 	} else if preCheck.Connected && preCheck.StackType == "IPv4" {
