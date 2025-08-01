@@ -297,7 +297,7 @@ func GetPoPInfo(ip string) (*PoPResult, error) {
 			abbrStr := center(abbr)
 			typeStr := center(u.Type)
 			line1 = append(line1, defaultset.White(asStr))
-			line2 = append(line2, defaultset.DarkGreen(abbrStr))
+			line2 = append(line2, abbrStr)
 			line3 = append(line3, defaultset.Blue(typeStr))
 		}
 		result.WriteString(strings.Join(line1, ""))

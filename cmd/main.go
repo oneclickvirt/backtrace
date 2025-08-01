@@ -64,11 +64,9 @@ func main() {
 	preCheck := utils.CheckPublicAccess(3 * time.Second)
 	if preCheck.Connected && info.Ip != "" {
 		result, err := bgptools.GetPoPInfo(info.Ip)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
+		if err == nil {
+			fmt.Print(result.Result)	
 		}
-		fmt.Print(result.Result)
 	}
 	if preCheck.Connected && preCheck.StackType == "DualStack" {
 		backtrace.BackTrace(ipv6)
