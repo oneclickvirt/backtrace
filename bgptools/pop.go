@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/imroc/req/v3"
 	"github.com/oneclickvirt/backtrace/model"
+	"github.com/oneclickvirt/defaultset"
 )
 
 type ASCard struct {
@@ -292,9 +293,12 @@ func GetPoPInfo(ip string) (*PoPResult, error) {
 		var line1, line2, line3 []string
 		for _, u := range batch {
 			abbr := getISPAbbr(u.ASN, u.Name)
-			line1 = append(line1, center("AS"+u.ASN))
-			line2 = append(line2, center(abbr))
-			line3 = append(line3, center(u.Type))
+			asStr := center("AS" + u.ASN)
+			abbrStr := center(abbr)
+			typeStr := center(u.Type)
+			line1 = append(line1, defaultset.White(asStr))
+			line2 = append(line2, defaultset.DarkGreen(abbrStr))
+			line3 = append(line3, defaultset.Blue(typeStr))
 		}
 		result.WriteString(strings.Join(line1, ""))
 		result.WriteString("\n")
