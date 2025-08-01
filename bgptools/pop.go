@@ -39,8 +39,6 @@ type PoPResult struct {
 	Result    string
 }
 
-// === 分类映射 ===
-
 var tier1Global = map[string]string{
 	"174":   "Cogent",
 	"1299":  "Arelion",
@@ -92,8 +90,6 @@ var ixps = map[string]string{
 	"1200":  "AMS-IX",
 	"6695":  "DE-CIX",
 }
-
-// === 工具函数 ===
 
 func getISPAbbr(asn, name string) string {
 	if abbr, ok := tier1Global[asn]; ok {
