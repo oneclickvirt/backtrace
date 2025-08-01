@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/imroc/req/v3"
 	"github.com/google/uuid"
+	"github.com/imroc/req/v3"
 )
 
 type ASCard struct {
@@ -36,6 +36,7 @@ type Upstream struct {
 type PoPResult struct {
 	TargetASN string
 	Upstreams []Upstream
+	Result    string
 }
 
 var tier1Global = map[string]string{
@@ -228,8 +229,14 @@ func GetPoPInfo(ip string) (*PoPResult, error) {
 		return nil, fmt.Errorf("无法识别目标 ASN")
 	}
 	upstreams := findUpstreams(targetASN, nodes, edges)
+	var result string
+	for _, u := range upstreams {
+		abbr := getISPAbbr(u.ASN, u.Name)
+		result += fmt.Sprintf("AS%s - %s [%s]\n", u.ASN, abbr, u.Type)
+	}
 	return &PoPResult{
 		TargetASN: targetASN,
 		Upstreams: upstreams,
+		Result:    result,
 	}, nil
 }

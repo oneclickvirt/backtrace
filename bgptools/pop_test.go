@@ -13,8 +13,5 @@ func TestGetPoPInfo(t *testing.T) {
 	}
 	fmt.Printf("目标 ASN: %s\n", result.TargetASN)
 	fmt.Println("上游信息:")
-	for _, u := range result.Upstreams {
-		abbr := getISPAbbr(u.ASN, u.Name)
-		fmt.Printf("AS%s - %s [%s]\n", u.ASN, abbr, u.Type)
-	}
+	fmt.Print(result.Result)
 }
