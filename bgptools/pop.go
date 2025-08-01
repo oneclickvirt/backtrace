@@ -30,7 +30,7 @@ type Upstream struct {
 	Name   string
 	Direct bool
 	Tier1  bool
-	Type   string // 新增类型字段
+	Type   string
 }
 
 type PoPResult struct {
@@ -38,6 +38,8 @@ type PoPResult struct {
 	Upstreams []Upstream
 	Result    string
 }
+
+// === 分类映射 ===
 
 var tier1Global = map[string]string{
 	"174":   "Cogent",
@@ -57,6 +59,42 @@ var tier1Global = map[string]string{
 	"12956": "Telxius",
 }
 
+var tier1Regional = map[string]string{
+	"4134": "ChinaNet",
+	"4837": "China Unicom",
+	"9808": "China Mobile",
+	"4766": "Korea Telecom",
+	"2516": "KDDI",
+	"7713": "Telkomnet",
+	"9121": "Etisalat",
+}
+
+var tier2 = map[string]string{
+	"6939":  "Hurricane Electric",
+	"20485": "Transtelecom",
+	"1273":  "Vodafone",
+	"1239":  "Sprint",
+	"6762":  "Sparkle",
+	"6453":  "Tata",
+}
+
+var contentProviders = map[string]string{
+	"15169": "Google",
+	"32934": "Facebook",
+	"54113": "Fastly",
+	"20940": "Akamai",
+	"13335": "Cloudflare",
+}
+
+var ixps = map[string]string{
+	"5539":  "IX.br",
+	"25291": "HKIX",
+	"1200":  "AMS-IX",
+	"6695":  "DE-CIX",
+}
+
+// === 工具函数 ===
+
 func getISPAbbr(asn, name string) string {
 	if abbr, ok := tier1Global[asn]; ok {
 		return abbr
@@ -68,13 +106,20 @@ func getISPAbbr(asn, name string) string {
 }
 
 func getISPType(asn string, tier1 bool) string {
-	if tier1 {
-		if _, ok := tier1Global[asn]; ok {
-			return "Tier1 Global"
-		}
+	switch {
+	case tier1 && tier1Global[asn] != "":
+		return "Tier1 Global"
+	case tier1Regional[asn] != "":
 		return "Tier1 Regional"
+	case tier2[asn] != "":
+		return "Tier2"
+	case contentProviders[asn] != "":
+		return "CDN Provider"
+	case ixps[asn] != "":
+		return "IXP"
+	default:
+		return "Direct"
 	}
-	return "Direct"
 }
 
 func isValidIP(ip string) bool {
@@ -229,14 +274,36 @@ func GetPoPInfo(ip string) (*PoPResult, error) {
 		return nil, fmt.Errorf("无法识别目标 ASN")
 	}
 	upstreams := findUpstreams(targetASN, nodes, edges)
-	var result string
+	if len(upstreams) > 5 {
+		upstreams = upstreams[:5]
+	}
+	colWidth := 16
+	center := func(s string) string {
+		runeLen := len([]rune(s))
+		if runeLen >= colWidth {
+			return s[:colWidth]
+		}
+		padding := colWidth - runeLen
+		left := padding / 2
+		right := padding - left
+		return strings.Repeat(" ", left) + s + strings.Repeat(" ", right)
+	}
+	var line1, line2, line3 []string
 	for _, u := range upstreams {
 		abbr := getISPAbbr(u.ASN, u.Name)
-		result += fmt.Sprintf("AS%s - %s [%s]\n", u.ASN, abbr, u.Type)
+		line1 = append(line1, center("AS"+u.ASN))
+		line2 = append(line2, center(abbr))
+		line3 = append(line3, center(u.Type))
 	}
+	var result strings.Builder
+	result.WriteString(strings.Join(line1, ""))
+	result.WriteString("\n")
+	result.WriteString(strings.Join(line2, ""))
+	result.WriteString("\n")
+	result.WriteString(strings.Join(line3, ""))
 	return &PoPResult{
 		TargetASN: targetASN,
 		Upstreams: upstreams,
-		Result:    result,
+		Result:    result.String(),
 	}, nil
 }
