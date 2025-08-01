@@ -68,7 +68,6 @@ func main() {
 			fmt.Println(err.Error())
 			return
 		}
-		fmt.Println("上游信息:")
 		fmt.Print(result.Result)
 	}
 	if preCheck.Connected && preCheck.StackType == "DualStack" {
