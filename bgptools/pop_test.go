@@ -6,7 +6,7 @@ import (
 )
 
 func TestGetPoPInfo(t *testing.T) {
-	result, err := GetPoPInfo("206.190.233.1")
+	result, err := GetPoPInfo("23.128.228.123")
 	if err != nil {
 		fmt.Println(err.Error())
 		return
