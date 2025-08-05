@@ -19,6 +19,8 @@
 - [x] 增加对全平台的编译支持，原版[backtrace](https://github.com/zhanghanyun/backtrace)仅支持linux平台的amd64和arm64架构
 - [x] 兼容额外的ICMP地址获取，若当前目标IP无法查询路由尝试额外的IP地址
 
+相关输出和查询结果的说明：[跳转](https://github.com/oneclickvirt/ecs/blob/master/README_NEW_USER.md#%E4%B8%8A%E6%B8%B8%E5%8F%8A%E5%9B%9E%E7%A8%8B%E7%BA%BF%E8%B7%AF%E6%A3%80%E6%B5%8B)
+
 ## 使用
 
 下载、安装、更新
