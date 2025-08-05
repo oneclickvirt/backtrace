@@ -42,19 +42,16 @@ type PoPResult struct {
 	Result    string
 }
 
-// retryConfig 重试配置
 type retryConfig struct {
 	maxRetries int
 	timeouts   []time.Duration
 }
 
-// 默认重试配置：3次重试，超时时间分别为3s、4s、5s
 var defaultRetryConfig = retryConfig{
 	maxRetries: 2,
 	timeouts:   []time.Duration{5 * time.Second, 6 * time.Second},
 }
 
-// executeWithRetry 执行带重试的HTTP请求
 func executeWithRetry(client *req.Client, url string, config retryConfig) (*req.Response, error) {
 	var lastErr error
 	for attempt := 0; attempt < config.maxRetries; attempt++ {
@@ -88,10 +85,12 @@ func getISPAbbr(asn, name string) string {
 
 func getISPType(asn string, tier1 bool, direct bool) string {
 	switch {
-	case tier1 && model.Tier1Global[asn] != "":
+	case tier1 && direct && model.Tier1Global[asn] != "":
 		return "Tier1 Global"
-	case model.Tier1Regional[asn] != "":
+	case tier1 && direct && model.Tier1Regional[asn] != "":
 		return "Tier1 Regional"
+	case tier1 && !direct:
+		return "Tier1 Indirect"
 	case model.Tier2[asn] != "":
 		return "Tier2"
 	case model.ContentProviders[asn] != "":
@@ -343,7 +342,6 @@ func GetPoPInfo(ip string) (*PoPResult, error) {
 	if ip == "" {
 		return nil, fmt.Errorf("IP address cannot be empty")
 	}
-
 	svgPath, err := getSVGPath(ip)
 	if err != nil {
 		return nil, fmt.Errorf("获取SVG路径失败: %w", err)
