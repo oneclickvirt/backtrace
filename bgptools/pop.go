@@ -50,8 +50,8 @@ type retryConfig struct {
 
 // 默认重试配置：3次重试，超时时间分别为3s、4s、5s
 var defaultRetryConfig = retryConfig{
-	maxRetries: 3,
-	timeouts:   []time.Duration{3 * time.Second, 4 * time.Second, 5 * time.Second},
+	maxRetries: 2,
+	timeouts:   []time.Duration{5 * time.Second, 6 * time.Second},
 }
 
 // executeWithRetry 执行带重试的HTTP请求
