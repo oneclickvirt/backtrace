@@ -54,6 +54,8 @@ backtrace
 ```
 Usage: backtrace [options]
   -h    Show help information
+  -ip string
+        Specify IP address for bgptools
   -ipv6
         Enable ipv6 testing
   -log
