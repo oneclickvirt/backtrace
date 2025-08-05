@@ -7,6 +7,7 @@ import (
 	"net"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/imroc/req/v3"
@@ -41,14 +42,48 @@ type PoPResult struct {
 	Result    string
 }
 
+// retryConfig 重试配置
+type retryConfig struct {
+	maxRetries int
+	timeouts   []time.Duration
+}
+
+// 默认重试配置：3次重试，超时时间分别为3s、4s、5s
+var defaultRetryConfig = retryConfig{
+	maxRetries: 3,
+	timeouts:   []time.Duration{3 * time.Second, 4 * time.Second, 5 * time.Second},
+}
+
+// executeWithRetry 执行带重试的HTTP请求
+func executeWithRetry(client *req.Client, url string, config retryConfig) (*req.Response, error) {
+	var lastErr error
+	for attempt := 0; attempt < config.maxRetries; attempt++ {
+		timeout := config.timeouts[attempt]
+		resp, err := client.SetTimeout(timeout).R().
+			Get(url)
+		if err == nil && resp.StatusCode == 200 {
+			return resp, nil
+		}
+		if err != nil {
+			lastErr = fmt.Errorf("attempt %d failed with timeout %v: %w", attempt+1, timeout, err)
+		} else {
+			lastErr = fmt.Errorf("attempt %d failed with HTTP status %d (timeout %v)", attempt+1, resp.StatusCode, timeout)
+		}
+		if attempt < config.maxRetries-1 {
+			time.Sleep(3 * time.Second)
+		}
+	}
+	return nil, fmt.Errorf("all %d attempts failed, last error: %w", config.maxRetries, lastErr)
+}
+
 func getISPAbbr(asn, name string) string {
 	if abbr, ok := model.Tier1Global[asn]; ok {
 		return abbr
 	}
-	if idx := strings.Index(name, " "); idx != -1 && idx > 18 {
+	if idx := strings.Index(name, " "); idx != -1 && idx >= 18 {
 		return name[:idx]
 	}
-	return name
+	return strings.TrimSpace(name)
 }
 
 func getISPType(asn string, tier1 bool, direct bool) string {
@@ -74,42 +109,54 @@ func isValidIP(ip string) bool {
 	return net.ParseIP(ip) != nil
 }
 
-func getSVGPath(client *req.Client, ip string) (string, error) {
+func getSVGPath(ip string) (string, error) {
 	if !isValidIP(ip) {
 		return "", fmt.Errorf("invalid IP address: %s", ip)
 	}
-	url := fmt.Sprintf("https://bgp.tools/prefix/%s#connectivity", ip)
-	resp, err := client.R().Get(url)
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch BGP info for IP %s: %w", ip, err)
+	var lastErr error
+	for attempt := 0; attempt < defaultRetryConfig.maxRetries; attempt++ {
+		client := req.C().ImpersonateChrome()
+		url := fmt.Sprintf("https://bgp.tools/prefix/%s#connectivity", ip)
+		resp, err := executeWithRetry(client, url, defaultRetryConfig)
+		if err == nil {
+			body := resp.String()
+			re := regexp.MustCompile(`<img[^>]+id="pathimg"[^>]+src="([^"]+)"`)
+			matches := re.FindStringSubmatch(body)
+			if len(matches) >= 2 {
+				return matches[1], nil
+			}
+			lastErr = fmt.Errorf("SVG path not found for IP %s", ip)
+		} else {
+			lastErr = fmt.Errorf("failed to fetch BGP info for IP %s: %w", ip, err)
+		}
+		if attempt < defaultRetryConfig.maxRetries-1 {
+			time.Sleep(1 * time.Second)
+		}
 	}
-	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("HTTP error %d when fetching BGP info for IP %s", resp.StatusCode, ip)
-	}
-	body := resp.String()
-	re := regexp.MustCompile(`<img[^>]+id="pathimg"[^>]+src="([^"]+)"`)
-	matches := re.FindStringSubmatch(body)
-	if len(matches) < 2 {
-		return "", fmt.Errorf("SVG path not found for IP %s", ip)
-	}
-	return matches[1], nil
+	return "", fmt.Errorf("failed to get SVG path after %d retries: %w", defaultRetryConfig.maxRetries, lastErr)
 }
 
-func downloadSVG(client *req.Client, svgPath string) (string, error) {
-	uuid := uuid.NewString()
-	url := fmt.Sprintf("https://bgp.tools%s?%s&loggedin", svgPath, uuid)
-	resp, err := client.R().Get(url)
-	if err != nil {
-		return "", fmt.Errorf("failed to download SVG: %w", err)
+func downloadSVG(svgPath string) (string, error) {
+	var lastErr error
+	for attempt := 0; attempt < defaultRetryConfig.maxRetries; attempt++ {
+		client := req.C().ImpersonateChrome()
+		uuid := uuid.NewString()
+		url := fmt.Sprintf("https://bgp.tools%s?%s&loggedin", svgPath, uuid)
+		resp, err := executeWithRetry(client, url, defaultRetryConfig)
+		if err == nil {
+			bodyBytes, err := io.ReadAll(resp.Body)
+			if err == nil {
+				return string(bodyBytes), nil
+			}
+			lastErr = fmt.Errorf("failed to read SVG response body: %w", err)
+		} else {
+			lastErr = fmt.Errorf("failed to download SVG: %w", err)
+		}
+		if attempt < defaultRetryConfig.maxRetries-1 {
+			time.Sleep(1 * time.Second)
+		}
 	}
-	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("HTTP error %d when downloading SVG", resp.StatusCode)
-	}
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read SVG response body: %w", err)
-	}
-	return string(bodyBytes), nil
+	return "", fmt.Errorf("failed to download SVG after %d retries: %w", defaultRetryConfig.maxRetries, lastErr)
 }
 
 func parseASAndEdges(svg string) ([]ASCard, []Arrow) {
@@ -183,6 +230,7 @@ func findUpstreams(targetASN string, nodes []ASCard, edges []Arrow) []Upstream {
 		}
 	}
 	var upstreams []Upstream
+	addedASNs := map[string]bool{}
 	for _, n := range nodes {
 		if !upstreamMap[n.ASN] {
 			continue
@@ -196,6 +244,7 @@ func findUpstreams(targetASN string, nodes []ASCard, edges []Arrow) []Upstream {
 			Tier1:  isTier1,
 			Type:   upstreamType,
 		})
+		addedASNs[n.ASN] = true
 	}
 	if len(upstreams) == 1 {
 		currentASN := upstreams[0].ASN
@@ -214,14 +263,7 @@ func findUpstreams(targetASN string, nodes []ASCard, edges []Arrow) []Upstream {
 				nextASN = asn
 				break
 			}
-			found := false
-			for _, existing := range upstreams {
-				if existing.ASN == nextASN {
-					found = true
-					break
-				}
-			}
-			if found {
+			if addedASNs[nextASN] {
 				break
 			}
 			var nextNode *ASCard
@@ -243,7 +285,55 @@ func findUpstreams(targetASN string, nodes []ASCard, edges []Arrow) []Upstream {
 				Tier1:  isTier1,
 				Type:   upstreamType,
 			})
+			addedASNs[nextNode.ASN] = true
 			currentASN = nextASN
+		}
+	} else if len(upstreams) > 1 {
+		for _, directUpstream := range upstreams {
+			currentASN := directUpstream.ASN
+			for {
+				nextUpstreams := map[string]bool{}
+				for _, e := range edges {
+					if e.From == currentASN {
+						nextUpstreams[e.To] = true
+					}
+				}
+				if len(nextUpstreams) != 1 {
+					break
+				}
+				var nextASN string
+				for asn := range nextUpstreams {
+					nextASN = asn
+					break
+				}
+				if addedASNs[nextASN] {
+					break
+				}
+				var nextNode *ASCard
+				for _, n := range nodes {
+					if n.ASN == nextASN {
+						nextNode = &n
+						break
+					}
+				}
+				if nextNode == nil {
+					break
+				}
+				isTier1 := (nextNode.Fill == "white" && nextNode.Stroke == "#005ea5")
+				if isTier1 {
+					upstreamType := getISPType(nextNode.ASN, isTier1, false)
+					upstreams = append(upstreams, Upstream{
+						ASN:    nextNode.ASN,
+						Name:   nextNode.Name,
+						Direct: false,
+						Tier1:  isTier1,
+						Type:   upstreamType,
+					})
+					addedASNs[nextNode.ASN] = true
+					break
+				}
+				currentASN = nextASN
+			}
 		}
 	}
 	return upstreams
@@ -253,12 +343,12 @@ func GetPoPInfo(ip string) (*PoPResult, error) {
 	if ip == "" {
 		return nil, fmt.Errorf("IP address cannot be empty")
 	}
-	client := req.C().ImpersonateChrome()
-	svgPath, err := getSVGPath(client, ip)
+
+	svgPath, err := getSVGPath(ip)
 	if err != nil {
 		return nil, fmt.Errorf("获取SVG路径失败: %w", err)
 	}
-	svg, err := downloadSVG(client, svgPath)
+	svg, err := downloadSVG(svgPath)
 	if err != nil {
 		return nil, fmt.Errorf("下载SVG失败: %w", err)
 	}
