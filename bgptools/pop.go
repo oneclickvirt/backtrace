@@ -70,7 +70,7 @@ func executeWithRetry(client *req.Client, url string, config retryConfig) (*req.
 			lastErr = fmt.Errorf("attempt %d failed with HTTP status %d (timeout %v)", attempt+1, resp.StatusCode, timeout)
 		}
 		if attempt < config.maxRetries-1 {
-			time.Sleep(3 * time.Second)
+			time.Sleep(1 * time.Second)
 		}
 	}
 	return nil, fmt.Errorf("all %d attempts failed, last error: %w", config.maxRetries, lastErr)
