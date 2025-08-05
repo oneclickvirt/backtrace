@@ -1,5 +1,4 @@
 package main
-
 import (
 	"encoding/json"
 	"flag"
@@ -8,14 +7,12 @@ import (
 	"os"
 	"runtime"
 	"time"
-
 	"github.com/oneclickvirt/backtrace/bgptools"
 	backtrace "github.com/oneclickvirt/backtrace/bk"
 	"github.com/oneclickvirt/backtrace/model"
 	"github.com/oneclickvirt/backtrace/utils"
 	. "github.com/oneclickvirt/defaultset"
 )
-
 type IpInfo struct {
 	Ip      string `json:"ip"`
 	City    string `json:"city"`
@@ -23,19 +20,20 @@ type IpInfo struct {
 	Country string `json:"country"`
 	Org     string `json:"org"`
 }
-
 func main() {
 	go func() {
 		http.Get("https://hits.spiritlhl.net/backtrace.svg?action=hit&title=Hits&title_bg=%23555555&count_bg=%230eecf8&edge_flat=false")
 	}()
 	fmt.Println(Green("Repo:"), Yellow("https://github.com/oneclickvirt/backtrace"))
 	var showVersion, showIpInfo, help, ipv6 bool
+	var specifiedIP string
 	backtraceFlag := flag.NewFlagSet("backtrace", flag.ContinueOnError)
 	backtraceFlag.BoolVar(&help, "h", false, "Show help information")
 	backtraceFlag.BoolVar(&showVersion, "v", false, "Show version")
 	backtraceFlag.BoolVar(&showIpInfo, "s", true, "Disabe show ip info")
 	backtraceFlag.BoolVar(&model.EnableLoger, "log", false, "Enable logging")
 	backtraceFlag.BoolVar(&ipv6, "ipv6", false, "Enable ipv6 testing")
+	backtraceFlag.StringVar(&specifiedIP, "ip", "", "Specify IP address for bgptools")
 	backtraceFlag.Parse(os.Args[1:])
 	if help {
 		fmt.Printf("Usage: %s [options]\n", os.Args[0])
@@ -62,10 +60,19 @@ func main() {
 		}
 	}
 	preCheck := utils.CheckPublicAccess(3 * time.Second)
-	if preCheck.Connected && info.Ip != "" {
-		result, err := bgptools.GetPoPInfo(info.Ip)
-		if err == nil {
-			fmt.Print(result.Result)	
+	if preCheck.Connected {
+		var targetIP string
+		if specifiedIP != "" {
+			targetIP = specifiedIP
+		} else if info.Ip != "" {
+			targetIP = info.Ip
+		}
+		
+		if targetIP != "" {
+			result, err := bgptools.GetPoPInfo(targetIP)
+			if err == nil {
+				fmt.Print(result.Result)	
+			}
 		}
 	}
 	if preCheck.Connected && preCheck.StackType == "DualStack" {
