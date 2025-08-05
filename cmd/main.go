@@ -67,7 +67,6 @@ func main() {
 		} else if info.Ip != "" {
 			targetIP = info.Ip
 		}
-		
 		if targetIP != "" {
 			result, err := bgptools.GetPoPInfo(targetIP)
 			if err == nil {
@@ -85,7 +84,7 @@ func main() {
 		fmt.Println(Red("PreCheck IP Type Failed"))
 	}
 	fmt.Println(Yellow("准确线路自行查看详细路由，本测试结果仅作参考"))
-	fmt.Println(Yellow("同一目标地址多个线路时，可能检测已越过汇聚层，除了第一个线路外，后续信息可能无效"))
+	fmt.Println(Yellow("同一目标地址多个线路时，检测可能已越过汇聚层，除第一个线路外，后续信息可能无效"))
 	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
 		fmt.Println("Press Enter to exit...")
 		fmt.Scanln()
