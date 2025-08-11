@@ -29,7 +29,7 @@ type ConcurrentResults struct {
 	bgpResult       string
 	backtraceResult string
 	bgpError        error
-	backtraceError  error
+	// backtraceError  error
 }
 
 func main() {
@@ -108,11 +108,17 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			result, err := bgptools.GetPoPInfo(targetIP)
-			if err == nil {
-				results.bgpResult = result.Result
+			for i := 0; i < 2; i++ {
+				result, err := bgptools.GetPoPInfo(targetIP)
+				results.bgpError = err
+				if err == nil && result.Result != "" {
+					results.bgpResult = result.Result
+					return
+				}
+				if i == 0 {
+					time.Sleep(3 * time.Second)
+				}
 			}
-			results.bgpError = err
 		}()
 	}
 	wg.Add(1)
