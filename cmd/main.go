@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/oneclickvirt/backtrace/bgptools"
@@ -22,6 +23,13 @@ type IpInfo struct {
 	Region  string `json:"region"`
 	Country string `json:"country"`
 	Org     string `json:"org"`
+}
+
+type ConcurrentResults struct {
+	bgpResult       string
+	backtraceResult string
+	bgpError        error
+	backtraceError  error
 }
 
 func main() {
@@ -64,31 +72,61 @@ func main() {
 		}
 	}
 	preCheck := utils.CheckPublicAccess(3 * time.Second)
-	if preCheck.Connected {
-		var targetIP string
-		if specifiedIP != "" {
-			targetIP = specifiedIP
-		} else if info.Ip != "" {
-			targetIP = info.Ip
+	if !preCheck.Connected {
+		fmt.Println(Red("PreCheck IP Type Failed"))
+		if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+			fmt.Println("Press Enter to exit...")
+			fmt.Scanln()
 		}
-		if targetIP != "" {
+		return
+	}
+	var useIPv6 bool
+	switch preCheck.StackType {
+	case "DualStack":
+		useIPv6 = ipv6
+	case "IPv4":
+		useIPv6 = false
+	case "IPv6":
+		useIPv6 = true
+	default:
+		fmt.Println(Red("PreCheck IP Type Failed"))
+		if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+			fmt.Println("Press Enter to exit...")
+			fmt.Scanln()
+		}
+		return
+	}
+	results := ConcurrentResults{}
+	var wg sync.WaitGroup
+	var targetIP string
+	if specifiedIP != "" {
+		targetIP = specifiedIP
+	} else if info.Ip != "" {
+		targetIP = info.Ip
+	}
+	if targetIP != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 			result, err := bgptools.GetPoPInfo(targetIP)
 			if err == nil {
-				fmt.Print(result.Result)
+				results.bgpResult = result.Result
 			}
-		}
+			results.bgpError = err
+		}()
 	}
-	if preCheck.Connected && preCheck.StackType == "DualStack" {
-		result := backtrace.BackTrace(ipv6)
-		fmt.Printf("%s\n", result)
-	} else if preCheck.Connected && preCheck.StackType == "IPv4" {
-		result := backtrace.BackTrace(false)
-		fmt.Printf("%s\n", result)
-	} else if preCheck.Connected && preCheck.StackType == "IPv6" {
-		result := backtrace.BackTrace(true)
-		fmt.Printf("%s\n", result)
-	} else {
-		fmt.Println(Red("PreCheck IP Type Failed"))
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		result := backtrace.BackTrace(useIPv6)
+		results.backtraceResult = result
+	}()
+	wg.Wait()
+	if results.bgpResult != "" {
+		fmt.Print(results.bgpResult)
+	}
+	if results.backtraceResult != "" {
+		fmt.Printf("%s\n", results.backtraceResult)
 	}
 	fmt.Println(Yellow("准确线路自行查看详细路由，本测试结果仅作参考"))
 	fmt.Println(Yellow("同一目标地址多个线路时，检测可能已越过汇聚层，除第一个线路外，后续信息可能无效"))
