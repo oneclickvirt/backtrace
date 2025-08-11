@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 
 	"github.com/oneclickvirt/backtrace/model"
 	. "github.com/oneclickvirt/defaultset"
@@ -79,38 +80,48 @@ func traceIPv6(ch chan Result, i int, offset int) {
 	}
 	var allHops [][]*Hop
 	var successfulTraces int
-	// 尝试3次trace
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	// 并发执行3次trace
 	for attempt := 1; attempt <= 3; attempt++ {
-		if model.EnableLoger {
-			Logger.Info(fmt.Sprintf("第%d次尝试追踪 %s (%s)", attempt, model.Ipv6Names[i], model.Ipv6s[i]))
-		}
-		// 先尝试原始IP地址
-		hops, err := Trace(net.ParseIP(model.Ipv6s[i]))
-		if err != nil {
+		wg.Add(1)
+		go func(attemptNum int) {
+			defer wg.Done()
 			if model.EnableLoger {
-				Logger.Warn(fmt.Sprintf("第%d次追踪 %s (%s) 失败: %v", attempt, model.Ipv6Names[i], model.Ipv6s[i], err))
+				Logger.Info(fmt.Sprintf("第%d次尝试追踪 %s (%s)", attemptNum, model.Ipv6Names[i], model.Ipv6s[i]))
 			}
-			// 如果原始IP失败，尝试备选IP
-			if tryAltIPs := tryAlternativeIPs(model.Ipv6Names[i], "v6"); len(tryAltIPs) > 0 {
-				for _, altIP := range tryAltIPs {
-					if model.EnableLoger {
-						Logger.Info(fmt.Sprintf("第%d次尝试备选IP %s 追踪 %s", attempt, altIP, model.Ipv6Names[i]))
-					}
-					hops, err = Trace(net.ParseIP(altIP))
-					if err == nil && len(hops) > 0 {
-						break // 成功找到可用IP
+			// 先尝试原始IP地址
+			hops, err := Trace(net.ParseIP(model.Ipv6s[i]))
+			if err != nil {
+				if model.EnableLoger {
+					Logger.Warn(fmt.Sprintf("第%d次追踪 %s (%s) 失败: %v", attemptNum, model.Ipv6Names[i], model.Ipv6s[i], err))
+				}
+				// 如果原始IP失败，尝试备选IP
+				if tryAltIPs := tryAlternativeIPs(model.Ipv6Names[i], "v6"); len(tryAltIPs) > 0 {
+					for _, altIP := range tryAltIPs {
+						if model.EnableLoger {
+							Logger.Info(fmt.Sprintf("第%d次尝试备选IP %s 追踪 %s", attemptNum, altIP, model.Ipv6Names[i]))
+						}
+						hops, err = Trace(net.ParseIP(altIP))
+						if err == nil && len(hops) > 0 {
+							break // 成功找到可用IP
+						}
 					}
 				}
 			}
-		}
-		if err == nil && len(hops) > 0 {
-			allHops = append(allHops, hops)
-			successfulTraces++
-			if model.EnableLoger {
-				Logger.Info(fmt.Sprintf("第%d次追踪 %s (%s) 成功，获得%d个hop", attempt, model.Ipv6Names[i], model.Ipv6s[i], len(hops)))
+			if err == nil && len(hops) > 0 {
+				mu.Lock()
+				allHops = append(allHops, hops)
+				successfulTraces++
+				mu.Unlock()
+				if model.EnableLoger {
+					Logger.Info(fmt.Sprintf("第%d次追踪 %s (%s) 成功，获得%d个hop", attemptNum, model.Ipv6Names[i], model.Ipv6s[i], len(hops)))
+				}
 			}
-		}
+		}(attempt)
 	}
+	// 等待所有goroutine完成
+	wg.Wait()
 	// 如果3次都失败
 	if successfulTraces == 0 {
 		s := fmt.Sprintf("%v %-24s %v", model.Ipv6Names[i], model.Ipv6s[i], Red("检测不到回程路由节点的IP地址"))
