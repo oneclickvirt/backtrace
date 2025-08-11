@@ -1,4 +1,5 @@
 package main
+
 import (
 	"encoding/json"
 	"flag"
@@ -7,12 +8,14 @@ import (
 	"os"
 	"runtime"
 	"time"
+
 	"github.com/oneclickvirt/backtrace/bgptools"
 	backtrace "github.com/oneclickvirt/backtrace/bk"
 	"github.com/oneclickvirt/backtrace/model"
 	"github.com/oneclickvirt/backtrace/utils"
 	. "github.com/oneclickvirt/defaultset"
 )
+
 type IpInfo struct {
 	Ip      string `json:"ip"`
 	City    string `json:"city"`
@@ -20,6 +23,7 @@ type IpInfo struct {
 	Country string `json:"country"`
 	Org     string `json:"org"`
 }
+
 func main() {
 	go func() {
 		http.Get("https://hits.spiritlhl.net/backtrace.svg?action=hit&title=Hits&title_bg=%23555555&count_bg=%230eecf8&edge_flat=false")
@@ -48,11 +52,11 @@ func main() {
 	if showIpInfo {
 		rsp, err := http.Get("http://ipinfo.io")
 		if err != nil {
-			fmt.Errorf("Get ip info err %v \n", err.Error())
+			fmt.Printf("get ip info err %v \n", err.Error())
 		} else {
 			err = json.NewDecoder(rsp.Body).Decode(&info)
 			if err != nil {
-				fmt.Errorf("json decode err %v \n", err.Error())
+				fmt.Printf("json decode err %v \n", err.Error())
 			} else {
 				fmt.Println(Green("国家: ") + White(info.Country) + Green(" 城市: ") + White(info.City) +
 					Green(" 服务商: ") + Blue(info.Org))
@@ -70,16 +74,19 @@ func main() {
 		if targetIP != "" {
 			result, err := bgptools.GetPoPInfo(targetIP)
 			if err == nil {
-				fmt.Print(result.Result)	
+				fmt.Print(result.Result)
 			}
 		}
 	}
 	if preCheck.Connected && preCheck.StackType == "DualStack" {
-		backtrace.BackTrace(ipv6)
+		result := backtrace.BackTrace(ipv6)
+		fmt.Printf("%s\n", result)
 	} else if preCheck.Connected && preCheck.StackType == "IPv4" {
-		backtrace.BackTrace(false)
+		result := backtrace.BackTrace(false)
+		fmt.Printf("%s\n", result)
 	} else if preCheck.Connected && preCheck.StackType == "IPv6" {
-		backtrace.BackTrace(true)
+		result := backtrace.BackTrace(true)
+		fmt.Printf("%s\n", result)
 	} else {
 		fmt.Println(Red("PreCheck IP Type Failed"))
 	}

@@ -194,14 +194,15 @@ func (t *Tracer) serveData(from net.IP, b []byte) error {
 			Logger.Info(fmt.Sprintf("收到IPv6 ICMP消息: 类型=%v, 代码=%v", msg.Type, msg.Code))
 		}
 		// 处理不同类型的ICMP消息
-		if msg.Type == ipv6.ICMPTypeEchoReply {
+		switch msg.Type {
+		case ipv6.ICMPTypeEchoReply:
 			if echo, ok := msg.Body.(*icmp.Echo); ok {
 				if model.EnableLoger {
 					Logger.Info(fmt.Sprintf("处理IPv6回显应答: ID=%d, Seq=%d", echo.ID, echo.Seq))
 				}
 				return t.serveReply(from, &packet{from, uint16(echo.ID), 1, time.Now()})
 			}
-		} else if msg.Type == ipv6.ICMPTypeTimeExceeded {
+		case ipv6.ICMPTypeTimeExceeded:
 			b = getReplyData(msg)
 			if len(b) < ipv6.HeaderLen {
 				if model.EnableLoger {

@@ -11,7 +11,7 @@ import (
 	"golang.org/x/net/ipv6"
 )
 
-func newPacketV6(id uint16, dst net.IP, ttl int) []byte {
+func newPacketV6(id uint16, _ net.IP, _ int) []byte {
 	// 使用ipv6包的Echo请求
 	msg := icmp.Message{
 		Type: ipv6.ICMPTypeEchoRequest,
@@ -77,46 +77,56 @@ func traceIPv6(ch chan Result, i int, offset int) {
 		defer Logger.Sync()
 		Logger.Info(fmt.Sprintf("开始追踪 %s (%s)", model.Ipv6Names[i], model.Ipv6s[i]))
 	}
-	// 先尝试原始IP地址
-	hops, err := Trace(net.ParseIP(model.Ipv6s[i]))
-	if err != nil {
-		s := fmt.Sprintf("%v %-24s %v", model.Ipv6Names[i], model.Ipv6s[i], Red("检测不到回程路由节点的IP地址"))
+	var allHops [][]*Hop
+	var successfulTraces int
+	// 尝试3次trace
+	for attempt := 1; attempt <= 3; attempt++ {
 		if model.EnableLoger {
-			Logger.Warn(fmt.Sprintf("%s (%s) 检测不到回程路由节点的IP地址", model.Ipv6Names[i], model.Ipv6s[i]))
+			Logger.Info(fmt.Sprintf("第%d次尝试追踪 %s (%s)", attempt, model.Ipv6Names[i], model.Ipv6s[i]))
 		}
-		ch <- Result{i + offset, s}
-		return
-	}
-	asns := extractIpv6ASNsFromHops(hops, model.EnableLoger)
-	// 如果没有找到ASN，尝试备选IP
-	if len(asns) == 0 {
-		// 尝试从IcmpTargets获取备选IP
-		if tryAltIPs := tryAlternativeIPs(model.Ipv6Names[i], "v6"); len(tryAltIPs) > 0 {
-			for _, altIP := range tryAltIPs {
-				if model.EnableLoger {
-					Logger.Info(fmt.Sprintf("尝试备选IP %s 追踪 %s", altIP, model.Ipv6Names[i]))
-				}
-				hops, err = Trace(net.ParseIP(altIP))
-				if err == nil && len(hops) > 0 {
-					newAsns := extractIpv6ASNsFromHops(hops, model.EnableLoger)
-					asns = append(asns, newAsns...)
-					if len(newAsns) > 0 {
+		// 先尝试原始IP地址
+		hops, err := Trace(net.ParseIP(model.Ipv6s[i]))
+		if err != nil {
+			if model.EnableLoger {
+				Logger.Warn(fmt.Sprintf("第%d次追踪 %s (%s) 失败: %v", attempt, model.Ipv6Names[i], model.Ipv6s[i], err))
+			}
+			// 如果原始IP失败，尝试备选IP
+			if tryAltIPs := tryAlternativeIPs(model.Ipv6Names[i], "v6"); len(tryAltIPs) > 0 {
+				for _, altIP := range tryAltIPs {
+					if model.EnableLoger {
+						Logger.Info(fmt.Sprintf("第%d次尝试备选IP %s 追踪 %s", attempt, altIP, model.Ipv6Names[i]))
+					}
+					hops, err = Trace(net.ParseIP(altIP))
+					if err == nil && len(hops) > 0 {
 						break // 成功找到可用IP
 					}
 				}
 			}
 		}
+		if err == nil && len(hops) > 0 {
+			allHops = append(allHops, hops)
+			successfulTraces++
+			if model.EnableLoger {
+				Logger.Info(fmt.Sprintf("第%d次追踪 %s (%s) 成功，获得%d个hop", attempt, model.Ipv6Names[i], model.Ipv6s[i], len(hops)))
+			}
+		}
 	}
-	asns = removeDuplicates(asns)
-	// // 记录每个hop的信息
-	// if model.EnableLoger {
-	// 	for hopNum, hop := range hops {
-	// 		for nodeNum, node := range hop.Nodes {
-	// 			Logger.Info(fmt.Sprintf("追踪 %s (%s) - Hop %d, Node %d: %s (RTT: %v)",
-	// 				model.Ipv6Names[i], model.Ipv6s[i], hopNum+1, nodeNum+1, node.IP.String(), node.RTT))
-	// 		}
-	// 	}
-	// }
+	// 如果3次都失败
+	if successfulTraces == 0 {
+		s := fmt.Sprintf("%v %-24s %v", model.Ipv6Names[i], model.Ipv6s[i], Red("检测不到回程路由节点的IP地址"))
+		if model.EnableLoger {
+			Logger.Warn(fmt.Sprintf("%s (%s) 3次尝试都失败，检测不到回程路由节点的IP地址", model.Ipv6Names[i], model.Ipv6s[i]))
+		}
+		ch <- Result{i + offset, s}
+		return
+	}
+	// 合并hops结果
+	mergedHops := mergeHops(allHops)
+	if model.EnableLoger {
+		Logger.Info(fmt.Sprintf("%s (%s) 完成%d次成功追踪，合并后获得%d个hop", model.Ipv6Names[i], model.Ipv6s[i], successfulTraces, len(mergedHops)))
+	}
+	// 从合并后的hops提取ASN
+	asns := extractIpv6ASNsFromHops(mergedHops, model.EnableLoger)
 	// 处理不同线路
 	if len(asns) > 0 {
 		var tempText string
@@ -187,7 +197,7 @@ func traceIPv6(ch chan Result, i int, offset int) {
 			}
 		}
 		if model.EnableLoger {
-			Logger.Info(fmt.Sprintf("%s (%s) 追踪完成，结果: %s", model.Ipv6Names[i], model.Ipv6s[i], tempText))
+			Logger.Info(fmt.Sprintf("%s (%s) 追踪完成，最终结果: %s", model.Ipv6Names[i], model.Ipv6s[i], tempText))
 		}
 		ch <- Result{i + offset, tempText}
 	} else {

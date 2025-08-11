@@ -140,3 +140,76 @@ func tryAlternativeIPs(targetName string, ipVersion string) []string {
 	}
 	return nil
 }
+
+// mergeHops 合并多个hops结果
+func mergeHops(allHops [][]*Hop) []*Hop {
+	if len(allHops) == 0 {
+		return nil
+	}
+	if len(allHops) == 1 {
+		return allHops[0]
+	}
+	// 找到最大长度
+	maxLen := 0
+	for _, hops := range allHops {
+		if len(hops) > maxLen {
+			maxLen = len(hops)
+		}
+	}
+	var mergedHops []*Hop
+	// 逐位置合并
+	for pos := 0; pos < maxLen; pos++ {
+		var availableHops []*Hop
+		// 收集当前位置所有可用的hop
+		for _, hops := range allHops {
+			if pos < len(hops) {
+				availableHops = append(availableHops, hops[pos])
+			}
+		}
+		if len(availableHops) == 0 {
+			continue
+		}
+		// 如果只有一个可用hop，直接使用
+		if len(availableHops) == 1 {
+			mergedHops = append(mergedHops, availableHops[0])
+			continue
+		}
+		// 统计相同的hop（通过比较第一个node的IP）
+		hopCount := make(map[string][]*Hop)
+		for _, hop := range availableHops {
+			var key string
+			if len(hop.Nodes) > 0 && hop.Nodes[0].IP != nil {
+				key = hop.Nodes[0].IP.String()
+			} else {
+				key = "*" // 超时或无响应
+			}
+			if _, exists := hopCount[key]; !exists {
+				hopCount[key] = make([]*Hop, 0)
+			}
+			hopCount[key] = append(hopCount[key], hop)
+		}
+		// 按多数原则选择hop
+		if len(hopCount) == 1 {
+			// 所有hop都相同，选择第一个
+			mergedHops = append(mergedHops, availableHops[0])
+		} else {
+			// 找出最多的hop类型
+			maxCount := 0
+			var majorityHops []*Hop
+			for _, hops := range hopCount {
+				if len(hops) > maxCount {
+					maxCount = len(hops)
+					majorityHops = hops
+				}
+			}
+			// 如果有多数派，使用多数派的第一个
+			if maxCount > 1 || len(hopCount) == 2 {
+				mergedHops = append(mergedHops, majorityHops[0])
+			} else {
+				// 三个都不同，按请求早晚顺序选择第一个
+				mergedHops = append(mergedHops, availableHops[0])
+			}
+		}
+	}
+	return mergedHops
+}

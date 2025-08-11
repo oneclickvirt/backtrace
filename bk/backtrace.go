@@ -1,13 +1,13 @@
 package backtrace
 
 import (
-	"fmt"
+	"strings"
 	"time"
 
 	"github.com/oneclickvirt/backtrace/model"
 )
 
-func BackTrace(enableIpv6 bool) {
+func BackTrace(enableIpv6 bool) string {
 	if model.CachedIcmpData == "" || model.ParsedIcmpTargets == nil || time.Since(model.CachedIcmpDataFetchTime) > time.Hour {
 		model.CachedIcmpData = getData(model.IcmpTargets)
 		model.CachedIcmpDataFetchTime = time.Now()
@@ -15,6 +15,7 @@ func BackTrace(enableIpv6 bool) {
 			model.ParsedIcmpTargets = parseIcmpTargets(model.CachedIcmpData)
 		}
 	}
+	var builder strings.Builder
 	if enableIpv6 {
 		ipv4Count := len(model.Ipv4s)
 		ipv6Count := len(model.Ipv6s)
@@ -39,14 +40,18 @@ func BackTrace(enableIpv6 bool) {
 				break loopIPv4v6
 			}
 		}
+		// 收集 IPv4 结果
 		for i := 0; i < ipv4Count; i++ {
 			if s[i] != "" {
-				fmt.Println(s[i])
+				builder.WriteString(s[i])
+				builder.WriteString("\n")
 			}
 		}
+		// 收集 IPv6 结果
 		for i := ipv4Count; i < totalCount; i++ {
 			if s[i] != "" {
-				fmt.Println(s[i])
+				builder.WriteString(s[i])
+				builder.WriteString("\n")
 			}
 		}
 	} else {
@@ -68,10 +73,15 @@ func BackTrace(enableIpv6 bool) {
 				break loopIPv4
 			}
 		}
+		// 收集结果
 		for _, r := range s {
 			if r != "" {
-				fmt.Println(r)
+				builder.WriteString(r)
+				builder.WriteString("\n")
 			}
 		}
 	}
+	// 返回完整结果，去掉末尾的换行符
+	result := builder.String()
+	return strings.TrimSuffix(result, "\n")
 }

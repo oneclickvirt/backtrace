@@ -62,46 +62,56 @@ func trace(ch chan Result, i int) {
 		defer Logger.Sync()
 		Logger.Info(fmt.Sprintf("开始追踪 %s (%s)", model.Ipv4Names[i], model.Ipv4s[i]))
 	}
-	// 先尝试原始IP地址
-	hops, err := Trace(net.ParseIP(model.Ipv4s[i]))
-	if err != nil {
-		s := fmt.Sprintf("%v %-15s %v", model.Ipv4Names[i], model.Ipv4s[i], Red("检测不到回程路由节点的IP地址"))
+	var allHops [][]*Hop
+	var successfulTraces int
+	// 尝试3次trace
+	for attempt := 1; attempt <= 3; attempt++ {
 		if model.EnableLoger {
-			Logger.Error(fmt.Sprintf("追踪 %s (%s) 失败: %v", model.Ipv4Names[i], model.Ipv4s[i], err))
+			Logger.Info(fmt.Sprintf("第%d次尝试追踪 %s (%s)", attempt, model.Ipv4Names[i], model.Ipv4s[i]))
 		}
-		ch <- Result{i, s}
-		return
-	}
-	asns := extractIpv4ASNsFromHops(hops, model.EnableLoger)
-	// 如果没有找到ASN，尝试备选IP
-	if len(asns) == 0 {
-		// 尝试从IcmpTargets获取备选IP
-		if tryAltIPs := tryAlternativeIPs(model.Ipv4Names[i], "v4"); len(tryAltIPs) > 0 {
-			for _, altIP := range tryAltIPs {
-				if model.EnableLoger {
-					Logger.Info(fmt.Sprintf("尝试备选IP %s 追踪 %s", altIP, model.Ipv4Names[i]))
-				}
-				hops, err = Trace(net.ParseIP(altIP))
-				if err == nil && len(hops) > 0 {
-					newAsns := extractIpv4ASNsFromHops(hops, model.EnableLoger)
-					asns = append(asns, newAsns...)
-					if len(newAsns) > 0 {
+		// 先尝试原始IP地址
+		hops, err := Trace(net.ParseIP(model.Ipv4s[i]))
+		if err != nil {
+			if model.EnableLoger {
+				Logger.Warn(fmt.Sprintf("第%d次追踪 %s (%s) 失败: %v", attempt, model.Ipv4Names[i], model.Ipv4s[i], err))
+			}
+			// 如果原始IP失败，尝试备选IP
+			if tryAltIPs := tryAlternativeIPs(model.Ipv4Names[i], "v4"); len(tryAltIPs) > 0 {
+				for _, altIP := range tryAltIPs {
+					if model.EnableLoger {
+						Logger.Info(fmt.Sprintf("第%d次尝试备选IP %s 追踪 %s", attempt, altIP, model.Ipv4Names[i]))
+					}
+					hops, err = Trace(net.ParseIP(altIP))
+					if err == nil && len(hops) > 0 {
 						break // 成功找到可用IP
 					}
 				}
 			}
 		}
+		if err == nil && len(hops) > 0 {
+			allHops = append(allHops, hops)
+			successfulTraces++
+			if model.EnableLoger {
+				Logger.Info(fmt.Sprintf("第%d次追踪 %s (%s) 成功，获得%d个hop", attempt, model.Ipv4Names[i], model.Ipv4s[i], len(hops)))
+			}
+		}
 	}
-	asns = removeDuplicates(asns)
-	// // 记录每个hop的信息
-	// if model.EnableLoger {
-	// 	for hopNum, hop := range hops {
-	// 		for nodeNum, node := range hop.Nodes {
-	// 			Logger.Info(fmt.Sprintf("追踪 %s (%s) - Hop %d, Node %d: %s (RTT: %v)",
-	// 				model.Ipv4Names[i], model.Ipv4s[i], hopNum+1, nodeNum+1, node.IP.String(), node.RTT))
-	// 		}
-	// 	}
-	// }
+	// 如果3次都失败
+	if successfulTraces == 0 {
+		s := fmt.Sprintf("%v %-15s %v", model.Ipv4Names[i], model.Ipv4s[i], Red("检测不到回程路由节点的IP地址"))
+		if model.EnableLoger {
+			Logger.Error(fmt.Sprintf("%s (%s) 3次尝试都失败，检测不到回程路由节点的IP地址", model.Ipv4Names[i], model.Ipv4s[i]))
+		}
+		ch <- Result{i, s}
+		return
+	}
+	// 合并hops结果
+	mergedHops := mergeHops(allHops)
+	if model.EnableLoger {
+		Logger.Info(fmt.Sprintf("%s (%s) 完成%d次成功追踪，合并后获得%d个hop", model.Ipv4Names[i], model.Ipv4s[i], successfulTraces, len(mergedHops)))
+	}
+	// 从合并后的hops提取ASN
+	asns := extractIpv4ASNsFromHops(mergedHops, model.EnableLoger)
 	// 处理不同线路
 	if len(asns) > 0 {
 		var tempText string
@@ -167,18 +177,16 @@ func trace(ch chan Result, i int) {
 		}
 		if tempText == (fmt.Sprintf("%v ", model.Ipv4Names[i]) + fmt.Sprintf("%-15s ", model.Ipv4s[i])) {
 			tempText += fmt.Sprintf("%v", Red("检测不到已知线路的ASN"))
-
 			if model.EnableLoger {
 				Logger.Warn(fmt.Sprintf("%s (%s) 检测不到已知线路的ASN", model.Ipv4Names[i], model.Ipv4s[i]))
 			}
 		}
 		if model.EnableLoger {
-			Logger.Info(fmt.Sprintf("%s (%s) 追踪完成，结果: %s", model.Ipv4Names[i], model.Ipv4s[i], tempText))
+			Logger.Info(fmt.Sprintf("%s (%s) 追踪完成，最终结果: %s", model.Ipv4Names[i], model.Ipv4s[i], tempText))
 		}
 		ch <- Result{i, tempText}
 	} else {
 		s := fmt.Sprintf("%v %-15s %v", model.Ipv4Names[i], model.Ipv4s[i], Red("检测不到回程路由节点的IPV4地址"))
-
 		if model.EnableLoger {
 			Logger.Warn(fmt.Sprintf("%s (%s) 检测不到回程路由节点的IPV4地址", model.Ipv4Names[i], model.Ipv4s[i]))
 		}
