@@ -75,7 +75,7 @@ rm -rf /usr/bin/backtrace
 ## 在Golang中使用
 
 ```
-go get github.com/oneclickvirt/backtrace@v0.0.7-20250811023541
+go get github.com/oneclickvirt/backtrace@v0.0.8-20251102140847
 ```
 
 ## 概览图
