@@ -2,7 +2,7 @@ package model
 
 import "time"
 
-const BackTraceVersion = "v0.0.7"
+const BackTraceVersion = "v0.0.8"
 
 var EnableLoger = false
 
@@ -17,6 +17,7 @@ type IcmpTarget struct {
 var (
 	IcmpTargets = "https://raw.githubusercontent.com/spiritLHLS/icmp_targets/main/nodes.json"
 	CdnList     = []string{
+		"https://cdn.spiritlhl.net/",
 		"http://cdn1.spiritlhl.net/",
 		"http://cdn2.spiritlhl.net/",
 		"http://cdn3.spiritlhl.net/",

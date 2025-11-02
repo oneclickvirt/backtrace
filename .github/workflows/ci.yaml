@@ -20,14 +20,17 @@ jobs:
           go-version: ${{ matrix.go }}
 
       - name: Test
-        run: go test ./... -coverprofile=coverage.txt
+        run: |
+          # Run all tests without generating a combined coverage profile
+          set -euo pipefail
+          go test ./...
 
       - name: Create Tag
         if: success()
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
-          TAG="v0.0.7-$(date +'%Y%m%d%H%M%S')"
+          TAG="v0.0.8-$(date +'%Y%m%d%H%M%S')"
           git tag $TAG
           git push origin $TAG
           echo "TAG=$TAG" >> $GITHUB_ENV
