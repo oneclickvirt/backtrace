@@ -15,10 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       
     - name: Set up Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
         go-version: 'stable'
       
@@ -44,10 +44,10 @@ jobs:
     needs: build
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
         go-version: 'stable'
 
@@ -55,7 +55,7 @@ jobs:
       run: |
         mkdir -p bin
         cd cmd
-        CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
+        CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} GOARM=${{ matrix.goarm }} go build \
           -o ../bin/backtrace-${{ matrix.goos }}-${{ matrix.goarch }} \
           -v \
           -ldflags="-extldflags=-static -s -w" \
