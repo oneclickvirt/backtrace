@@ -47,7 +47,7 @@ func checkCdn(testUrl string) string {
 			Logger.Info(fmt.Sprintf("Testing CDN: %s", url))
 		}
 		resp, err := client.R().Get(url)
-		if err == nil {
+		if err == nil && resp != nil && resp.Body != nil {
 			b, err := io.ReadAll(resp.Body)
 			resp.Body.Close()
 			if err == nil && strings.Contains(string(b), "success") {
@@ -92,7 +92,7 @@ func getData(endpoint string) string {
 			Logger.Info(fmt.Sprintf("Using CDN: %s", url))
 		}
 		resp, err := client.R().Get(url)
-		if err == nil {
+		if err == nil && resp != nil && resp.Body != nil {
 			defer resp.Body.Close()
 			b, err := io.ReadAll(resp.Body)
 			if err == nil && !strings.Contains(string(b), "error") {
@@ -112,7 +112,7 @@ func getData(endpoint string) string {
 		Logger.Info(fmt.Sprintf("Trying direct connection: %s", endpoint))
 	}
 	resp, err := client.R().Get(endpoint)
-	if err == nil {
+	if err == nil && resp != nil && resp.Body != nil {
 		defer resp.Body.Close()
 		b, err := io.ReadAll(resp.Body)
 		if err == nil {

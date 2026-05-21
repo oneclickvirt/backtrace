@@ -32,9 +32,23 @@ type ConcurrentResults struct {
 	// backtraceError  error
 }
 
+func safeGo(wg *sync.WaitGroup, fn func()) {
+	go func() {
+		defer wg.Done()
+		defer func() {
+			if r := recover(); r != nil {
+			}
+		}()
+		fn()
+	}()
+}
+
 func main() {
 	go func() {
-		http.Get("https://hits.spiritlhl.net/backtrace.svg?action=hit&title=Hits&title_bg=%23555555&count_bg=%230eecf8&edge_flat=false")
+		resp, err := http.Get("https://hits.spiritlhl.net/backtrace.svg?action=hit&title=Hits&title_bg=%23555555&count_bg=%230eecf8&edge_flat=false")
+		if err == nil && resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
 	}()
 	fmt.Println(Green("Repo:"), Yellow("https://github.com/oneclickvirt/backtrace"))
 	var showVersion, showIpInfo, help, ipv6 bool
@@ -62,6 +76,7 @@ func main() {
 		if err != nil {
 			fmt.Printf("get ip info err %v \n", err.Error())
 		} else {
+			defer rsp.Body.Close()
 			err = json.NewDecoder(rsp.Body).Decode(&info)
 			if err != nil {
 				fmt.Printf("json decode err %v \n", err.Error())
@@ -106,8 +121,7 @@ func main() {
 	}
 	if targetIP != "" {
 		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		safeGo(&wg, func() {
 			for i := 0; i < 2; i++ {
 				result, err := bgptools.GetPoPInfo(targetIP)
 				results.bgpError = err
@@ -119,14 +133,13 @@ func main() {
 					time.Sleep(3 * time.Second)
 				}
 			}
-		}()
+		})
 	}
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	safeGo(&wg, func() {
 		result := backtrace.BackTrace(useIPv6)
 		results.backtraceResult = result
-	}()
+	})
 	wg.Wait()
 	if results.bgpResult != "" {
 		fmt.Print(results.bgpResult)

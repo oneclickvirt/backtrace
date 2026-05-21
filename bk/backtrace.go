@@ -7,6 +7,14 @@ import (
 	"github.com/oneclickvirt/backtrace/model"
 )
 
+func safeTraceCall(fn func()) {
+	defer func() {
+		if r := recover(); r != nil {
+		}
+	}()
+	fn()
+}
+
 func BackTrace(enableIpv6 bool) string {
 	if model.CachedIcmpData == "" || model.ParsedIcmpTargets == nil || time.Since(model.CachedIcmpDataFetchTime) > time.Hour {
 		model.CachedIcmpData = getData(model.IcmpTargets)
@@ -26,10 +34,16 @@ func BackTrace(enableIpv6 bool) string {
 			t = time.After(time.Second * 10)
 		)
 		for i := range model.Ipv4s {
-			go trace(c, i)
+			idx := i
+			go safeTraceCall(func() {
+				trace(c, idx)
+			})
 		}
 		for i := range model.Ipv6s {
-			go traceIPv6(c, i, ipv4Count)
+			idx := i
+			go safeTraceCall(func() {
+				traceIPv6(c, idx, ipv4Count)
+			})
 		}
 	loopIPv4v6:
 		for range s {
@@ -62,7 +76,10 @@ func BackTrace(enableIpv6 bool) string {
 			t = time.After(time.Second * 10)
 		)
 		for i := range model.Ipv4s {
-			go trace(c, i)
+			idx := i
+			go safeTraceCall(func() {
+				trace(c, idx)
+			})
 		}
 	loopIPv4:
 		for range s {

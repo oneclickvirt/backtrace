@@ -58,6 +58,10 @@ func extractIpv4ASNsFromHops(hops []*Hop, enableLogger bool) []string {
 
 // trace IPv4追踪函数
 func trace(ch chan Result, i int) {
+	defer func() {
+		if r := recover(); r != nil {
+		}
+	}()
 	if model.EnableLoger {
 		InitLogger()
 		defer Logger.Sync()
@@ -72,6 +76,10 @@ func trace(ch chan Result, i int) {
 		wg.Add(1)
 		go func(attemptNum int) {
 			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+				}
+			}()
 			if model.EnableLoger {
 				Logger.Info(fmt.Sprintf("第%d次尝试追踪 %s (%s)", attemptNum, model.Ipv4Names[i], model.Ipv4s[i]))
 			}

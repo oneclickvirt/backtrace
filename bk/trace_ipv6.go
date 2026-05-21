@@ -43,10 +43,21 @@ func (t *Tracer) serveIPv6(conn *ipv6.PacketConn) error {
 			}
 			return err
 		}
-		if model.EnableLoger {
-			Logger.Info(fmt.Sprintf("收到IPv6响应: 来源=%v, 跳数=%d", src, cm.HopLimit))
+		srcAddr, ok := src.(*net.IPAddr)
+		if !ok || srcAddr == nil {
+			continue
 		}
-		fromIP := src.(*net.IPAddr).IP
+		hopLimit := 0
+		if cm != nil {
+			hopLimit = cm.HopLimit
+		}
+		if model.EnableLoger {
+			Logger.Info(fmt.Sprintf("收到IPv6响应: 来源=%v, 跳数=%d", srcAddr, hopLimit))
+		}
+		fromIP := srcAddr.IP
+		if fromIP == nil {
+			continue
+		}
 		err = t.serveData(fromIP, buf[:n])
 		if err != nil && model.EnableLoger {
 			Logger.Warn("处理IPv6数据失败: " + err.Error())
@@ -73,6 +84,10 @@ func extractIpv6ASNsFromHops(hops []*Hop, enableLogger bool) []string {
 
 // traceIPv6 IPv6追踪函数
 func traceIPv6(ch chan Result, i int, offset int) {
+	defer func() {
+		if r := recover(); r != nil {
+		}
+	}()
 	if model.EnableLoger {
 		InitLogger()
 		defer Logger.Sync()
@@ -87,6 +102,10 @@ func traceIPv6(ch chan Result, i int, offset int) {
 		wg.Add(1)
 		go func(attemptNum int) {
 			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+				}
+			}()
 			if model.EnableLoger {
 				Logger.Info(fmt.Sprintf("第%d次尝试追踪 %s (%s)", attemptNum, model.Ipv6Names[i], model.Ipv6s[i]))
 			}

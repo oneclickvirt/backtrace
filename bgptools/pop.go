@@ -117,7 +117,10 @@ func getSVGPath(ip string) (string, error) {
 		client := req.C().ImpersonateChrome()
 		url := fmt.Sprintf("https://bgp.tools/prefix/%s#connectivity", ip)
 		resp, err := executeWithRetry(client, url, defaultRetryConfig)
-		if err == nil {
+		if err == nil && resp != nil {
+			if resp.Body != nil {
+				defer resp.Body.Close()
+			}
 			body := resp.String()
 			re := regexp.MustCompile(`<img[^>]+id="pathimg"[^>]+src="([^"]+)"`)
 			matches := re.FindStringSubmatch(body)
@@ -142,7 +145,8 @@ func downloadSVG(svgPath string) (string, error) {
 		uuid := uuid.NewString()
 		url := fmt.Sprintf("https://bgp.tools%s?%s&loggedin", svgPath, uuid)
 		resp, err := executeWithRetry(client, url, defaultRetryConfig)
-		if err == nil {
+		if err == nil && resp != nil && resp.Body != nil {
+			defer resp.Body.Close()
 			bodyBytes, err := io.ReadAll(resp.Body)
 			if err == nil {
 				return string(bodyBytes), nil

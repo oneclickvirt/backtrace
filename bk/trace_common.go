@@ -233,7 +233,10 @@ func (t *Tracer) serveData(from net.IP, b []byte) error {
 			return err
 		}
 		if msg.Type == ipv4.ICMPTypeEchoReply {
-			echo := msg.Body.(*icmp.Echo)
+			echo, ok := msg.Body.(*icmp.Echo)
+			if !ok || echo == nil {
+				return errUnsupportedProtocol
+			}
 			return t.serveReply(from, &packet{from, uint16(echo.ID), 1, time.Now()})
 		}
 		b = getReplyData(msg)
