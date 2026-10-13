@@ -1,128 +1,171 @@
 name: Build and Release
-
-on:
-  push:
-    tags: ["v*"]
-  workflow_dispatch:
-    inputs:
-      release_tag:
-        description: Existing semantic version tag to build and release
-        required: true
-        type: string
-
 permissions:
   contents: write
-
 jobs:
   verify:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.release.outputs.tag }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
-          fetch-depth: 0
-          fetch-tags: true
-      - id: release
-        name: Verify release tag and source version
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            tag="${{ inputs.release_tag }}"
-          else
-            tag="${GITHUB_REF#refs/tags/}"
-          fi
-          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          git fetch --force --tags origin
-          [[ "$(git rev-list -n 1 "$tag")" == "$(git rev-parse HEAD)" ]]
-          version="$(sed -n 's/^const BackTraceVersion = "\(v[0-9.]*\)"$/\1/p' model/model.go)"
-          [[ "$version" == "$tag" ]]
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-      - name: Validate release source
-        shell: bash
-        run: |
-          set -euo pipefail
-          go mod verify
-          go test -race -count=1 ./...
-          go vet ./...
-          go build -o "$RUNNER_TEMP/backtrace" ./cmd
-
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
+        fetch-depth: 0
+        fetch-tags: true
+    - id: release
+      name: Verify release tag and source version
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+          tag="${{ inputs.release_tag }}"
+        else
+          tag="${GITHUB_REF#refs/tags/}"
+        fi
+        [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+        git fetch --force --tags origin
+        [[ "$(git rev-list -n 1 "$tag")" == "$(git rev-parse HEAD)" ]]
+        version="$(sed -n 's/^const BackTraceVersion = "\(v[0-9.]*\)"$/\1/p' model/model.go)"
+        [[ "$version" == "$tag" ]]
+        echo "tag=$tag" >> "$GITHUB_OUTPUT"
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: go.mod
+        check-latest: true
+    - name: Validate release source
+      shell: bash
+      run: |
+        set -euo pipefail
+        go mod verify
+        go test -race -count=1 ./...
+        go vet ./...
+        go build -o "$RUNNER_TEMP/backtrace" ./cmd
+    env:
+      GOPROXY: https://proxy.golang.org|direct
   release:
     needs: verify
     runs-on: ubuntu-latest
     steps:
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ needs.verify.outputs.tag }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
-              --title "$RELEASE_TAG" --generate-notes
-
+    - name: Load trusted network recovery helpers
+      shell: bash
+      run: |
+        set -euo pipefail
+        curl --fail --silent --show-error --location --connect-timeout 15 --max-time 90 --retry 3 --retry-max-time 180 --retry-connrefused "https://raw.githubusercontent.com/oneclickvirt/backtrace/main/.github/scripts/ci_network.sh" -o "$RUNNER_TEMP/ci-network.sh"
+    - name: Create GitHub release
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+      shell: bash
+      run: |
+        source "$RUNNER_TEMP/ci-network.sh"
+        set -euo pipefail
+        gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "$RELEASE_TAG" --generate-notes
   build:
-    needs: [verify, release]
+    needs:
+    - verify
+    - release
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {goos: linux, goarch: amd64}
-          - {goos: linux, goarch: "386"}
-          - {goos: linux, goarch: arm, goarm: "7"}
-          - {goos: linux, goarch: arm64}
-          - {goos: linux, goarch: riscv64}
-          - {goos: linux, goarch: mips}
-          - {goos: linux, goarch: mipsle}
-          - {goos: linux, goarch: mips64}
-          - {goos: linux, goarch: mips64le}
-          - {goos: linux, goarch: ppc64}
-          - {goos: linux, goarch: ppc64le}
-          - {goos: freebsd, goarch: amd64}
-          - {goos: freebsd, goarch: "386"}
-          - {goos: freebsd, goarch: arm, goarm: "7"}
-          - {goos: freebsd, goarch: arm64}
-          - {goos: openbsd, goarch: amd64}
-          - {goos: openbsd, goarch: "386"}
-          - {goos: openbsd, goarch: arm, goarm: "7"}
-          - {goos: openbsd, goarch: arm64}
-          - {goos: darwin, goarch: amd64}
-          - {goos: darwin, goarch: arm64}
-          - {goos: windows, goarch: "386"}
-          - {goos: windows, goarch: amd64}
-          - {goos: windows, goarch: arm64}
+        - goos: linux
+          goarch: amd64
+        - goos: linux
+          goarch: '386'
+        - goos: linux
+          goarch: arm
+          goarm: '7'
+        - goos: linux
+          goarch: arm64
+        - goos: linux
+          goarch: riscv64
+        - goos: linux
+          goarch: mips
+        - goos: linux
+          goarch: mipsle
+        - goos: linux
+          goarch: mips64
+        - goos: linux
+          goarch: mips64le
+        - goos: linux
+          goarch: ppc64
+        - goos: linux
+          goarch: ppc64le
+        - goos: freebsd
+          goarch: amd64
+        - goos: freebsd
+          goarch: '386'
+        - goos: freebsd
+          goarch: arm
+          goarm: '7'
+        - goos: freebsd
+          goarch: arm64
+        - goos: openbsd
+          goarch: amd64
+        - goos: openbsd
+          goarch: '386'
+        - goos: openbsd
+          goarch: arm
+          goarm: '7'
+        - goos: openbsd
+          goarch: arm64
+        - goos: darwin
+          goarch: amd64
+        - goos: darwin
+          goarch: arm64
+        - goos: windows
+          goarch: '386'
+        - goos: windows
+          goarch: amd64
+        - goos: windows
+          goarch: arm64
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-      - name: Build binary
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          GOARM: ${{ matrix.goarm }}
-          CGO_ENABLED: "0"
-        shell: bash
-        run: |
-          set -euo pipefail
-          suffix=""
-          [[ "$GOOS" == "windows" ]] && suffix=".exe"
-          artifact="backtrace-${GOOS}-${GOARCH}${suffix}"
-          go build -trimpath -buildvcs=false -ldflags="-s -w" -o "$artifact" ./cmd
-          echo "ARTIFACT=$artifact" >> "$GITHUB_ENV"
-      - name: Upload release asset
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ needs.verify.outputs.tag }}
-        run: gh release upload "$RELEASE_TAG" "$ARTIFACT" --repo "$GITHUB_REPOSITORY" --clobber
+    - name: Load trusted network recovery helpers
+      shell: bash
+      run: |
+        set -euo pipefail
+        curl --fail --silent --show-error --location --connect-timeout 15 --max-time 90 --retry 3 --retry-max-time 180 --retry-connrefused "https://raw.githubusercontent.com/oneclickvirt/backtrace/main/.github/scripts/ci_network.sh" -o "$RUNNER_TEMP/ci-network.sh"
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: go.mod
+        check-latest: true
+    - name: Build binary
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        GOARM: ${{ matrix.goarm }}
+        CGO_ENABLED: '0'
+      shell: bash
+      run: |
+        set -euo pipefail
+        suffix=""
+        [[ "$GOOS" == "windows" ]] && suffix=".exe"
+        artifact="backtrace-${GOOS}-${GOARCH}${suffix}"
+        go build -trimpath -buildvcs=false -ldflags="-s -w" -o "$artifact" ./cmd
+        echo "ARTIFACT=$artifact" >> "$GITHUB_ENV"
+    - name: Upload release asset
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+      run: |-
+        source "$RUNNER_TEMP/ci-network.sh"
+        gh release upload "$RELEASE_TAG" "$ARTIFACT" --repo "$GITHUB_REPOSITORY" --clobber
+      shell: bash
+    env:
+      GOPROXY: https://proxy.golang.org|direct
+'on':
+  push:
+    tags:
+    - v*
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing semantic version tag to build and release
+        required: true
+        type: string

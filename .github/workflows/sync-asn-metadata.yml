@@ -1,51 +1,49 @@
 name: Sync ASN metadata
-
-on:
-  schedule:
-    - cron: "29 3 * * *"
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/sync-asn-metadata.yml"
-      - "cmd/update-asn-metadata/**"
-      - "bgptools/data/**"
-      - "bgptools/asn_metadata.go"
-      - "bgptools/asn_metadata_test.go"
-      - "model/model.go"
-      - "go.mod"
-      - "go.sum"
-
 concurrency:
   group: backtrace-asn-metadata-sync
   cancel-in-progress: false
-
 permissions:
   contents: write
-
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache: true
-      - name: Update snapshot
-        run: go run ./cmd/update-asn-metadata
-      - name: Validate updater and runtime loader
-        run: go test -race ./cmd/update-asn-metadata ./bgptools
-      - name: Vet updater and runtime loader
-        run: go vet ./cmd/update-asn-metadata ./bgptools
-      - name: Commit semantic changes
-        run: |
-          if git diff --quiet -- bgptools/data/bgp-asn-map.json bgptools/data/bgp-asn-map.manifest.json; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add bgptools/data/bgp-asn-map.json bgptools/data/bgp-asn-map.manifest.json
-          git commit -m "chore(data): update ASN metadata"
-          git push
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: go.mod
+        cache: true
+    - name: Update snapshot
+      run: go run ./cmd/update-asn-metadata
+    - name: Validate updater and runtime loader
+      run: go test -race ./cmd/update-asn-metadata ./bgptools
+    - name: Vet updater and runtime loader
+      run: go vet ./cmd/update-asn-metadata ./bgptools
+    - name: Commit semantic changes
+      run: |
+        if git diff --quiet -- bgptools/data/bgp-asn-map.json bgptools/data/bgp-asn-map.manifest.json; then
+          exit 0
+        fi
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add bgptools/data/bgp-asn-map.json bgptools/data/bgp-asn-map.manifest.json
+        git commit -m "chore(data): update ASN metadata"
+        git push
+    env:
+      GOPROXY: https://proxy.golang.org|direct
+'on':
+  schedule:
+  - cron: 29 3 * * *
+  workflow_dispatch: null
+  push:
+    branches:
+    - main
+    paths:
+    - .github/workflows/sync-asn-metadata.yml
+    - cmd/update-asn-metadata/**
+    - bgptools/data/**
+    - bgptools/asn_metadata.go
+    - bgptools/asn_metadata_test.go
+    - model/model.go
+    - go.mod
+    - go.sum

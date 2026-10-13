@@ -1,43 +1,38 @@
 name: 创建IPv6检测的前缀
-
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 0 * * *'
-
 concurrency:
   group: backtrace-ipv6-prefix-sync
   cancel-in-progress: false
-
 permissions:
   contents: write
-
 jobs:
   fetch-ipv6-prefixes:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 设置 Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-
-      - name: 获取并处理多个ASN的IPv6前缀
-        run: |
-          go run ./cmd/update-prefixes -output-dir bk/prefix
-
-      - name: 提交更新到仓库
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add bk/prefix/*.txt bk/prefix/*.txt.manifest.json
-          if git diff --cached --quiet; then
-            echo "无变更，跳过提交。"
-          else
-            git commit -m "chore: 更新多个 ASN 的 IPv6 前缀"
-            git push
-          fi
+    - name: 检出代码
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: 设置 Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: go.mod
+    - name: 获取并处理多个ASN的IPv6前缀
+      run: |
+        go run ./cmd/update-prefixes -output-dir bk/prefix
+    - name: 提交更新到仓库
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add bk/prefix/*.txt bk/prefix/*.txt.manifest.json
+        if git diff --cached --quiet; then
+          echo "无变更，跳过提交。"
+        else
+          git commit -m "chore: 更新多个 ASN 的 IPv6 前缀"
+          git push
+        fi
+    env:
+      GOPROXY: https://proxy.golang.org|direct
+'on':
+  workflow_dispatch: null
+  schedule:
+  - cron: 0 0 * * *
