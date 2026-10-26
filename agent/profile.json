@@ -1,0 +1,39 @@
+{
+  "repository": "oneclickvirt/backtrace",
+  "branch": "main",
+  "skill_name": "oneclickvirt-backtrace",
+  "purpose": "Query RDAP/BGP metadata for an explicit IP; distinguish lookup data from an actual traceroute.",
+  "notes": [
+    "Read probe_help from the installed binary before assuming flags are supported. MCP returns native JSON when the program provides JSON, otherwise native text.",
+    "Keep partial/network errors distinct from confirmed test outcomes. Current release assets and their actual architecture are available through release_assets.",
+    "The ip-info preset requires a literal target IP. Do not pass a host, proxy, shell expression or a network range."
+  ],
+  "guide": "https://www.spiritlhl.net/guide/agent_integrations.html",
+  "releases": true,
+  "mcp": true,
+  "binary": "backtrace",
+  "asset_prefix": "backtrace",
+  "presets": {
+    "ip-info": {
+      "args": [
+        "-json",
+        "-timeout",
+        "12s"
+      ],
+      "target": "-ip",
+      "timeout": 20
+    }
+  },
+  "benchmark": false,
+  "source_files": [
+    "backtrace_install.sh",
+    "cmd/main.go",
+    "go.mod"
+  ],
+  "purpose_zh": "查询指定 IP 的 RDAP/BGP 信息，区分数据库查询与真实路由探测。",
+  "notes_zh": [
+    "先用 probe_help 核对已安装程序的实际帮助。程序支持 JSON 时返回原生 JSON，否则返回原生文本。",
+    "区分部分结果、网络失败和确定结论；通过 release_assets 查询当前真实产物及架构。",
+    "ip-info 预设只接受单个真实 IP，不接受域名、代理、Shell 表达式或网段。"
+  ]
+}
